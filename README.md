@@ -1,4 +1,4 @@
-# AtmosFusion — Hybrid AI-NWP Multi-Model Forecast Blending System
+# AtmosFusion Web — Hybrid AI-NWP Multi-Model Forecast Blending System
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 
 ## Overview
