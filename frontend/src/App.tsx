@@ -37,24 +37,10 @@ export default function App() {
     }
   }, [data, scorecardData, setForecast, selectStation, selectedStationId]);
 
-  if (isLoading) {
+  if (isLoading || error) {
     return (
-      <div className="flex h-screen items-center justify-center bg-obsidian text-slate-400">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-monsoon-cyan border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm">Loading Forecast Data...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-obsidian text-crimson-hazard">
-        <div className="panel p-6 text-center space-y-2 border-crimson-hazard/30 bg-crimson-hazard/10">
-          <h2 className="font-bold text-lg">Failed to load forecast</h2>
-          <p className="text-sm text-slate-400">Ensure the backend API is running on localhost:8000</p>
-        </div>
+      <div className="flex h-screen items-center justify-center text-sm text-muted">
+        {error ? "Could not reach the forecast API on localhost:8000." : "Loading forecast…"}
       </div>
     );
   }
