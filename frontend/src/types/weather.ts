@@ -9,6 +9,7 @@ export interface WeatherStation {
   lng: number;
   elevation_m: number;
   terrain_type: string;
+  reach_km: number; // representative radius from WMO raingauge density class
   observed_rain_24h: number;
   model_predictions: Record<string, number>;
   assigned_weights: Record<string, number>;
@@ -29,14 +30,12 @@ export interface WeatherStation {
 }
 
 export interface RegionForecast {
-  region_id: string;
   region_name: string;
   regime: string;
   regime_confidence: number;
   season: string;
   lead_day: number;
   stations: WeatherStation[];
-  grid_summary: Record<string, number>;
 }
 
 export interface QuantilePoint {
@@ -133,9 +132,9 @@ export const LAYERS: Record<LayerMode, { label: string; caption: string; color: 
   },
   coverage: {
     label: "Coverage",
-    caption: "Area each gauge represents (Voronoi cell, capped at 20 km reach). Large cells mark network gaps.",
+    caption: "Area each gauge represents: its Voronoi cell, clipped to the WMO reach for its terrain (8.9 km in the Ghats, 13.5 km elsewhere).",
     // Bigger cell = each gauge stands for more ground = sparser network there.
-    color: (s) => tri(s.coverage_radius_km ?? 0, 16, 10),
-    legend: [{ color: "#D9453A", label: "≥16 km radius · sparse" }, { color: "#C98A12", label: "10–16 km radius" }, { color: "#4E9A5E", label: "<10 km radius · dense" }],
+    color: (s) => tri(s.coverage_radius_km ?? 0, 11, 8.5),
+    legend: [{ color: "#D9453A", label: "≥11 km radius · sparse" }, { color: "#C98A12", label: "8.5–11 km radius" }, { color: "#4E9A5E", label: "<8.5 km radius · dense" }],
   },
 };

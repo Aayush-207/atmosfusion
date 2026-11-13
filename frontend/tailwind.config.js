@@ -9,7 +9,6 @@ export default {
         line: "#E3DED4",
         ink: "#26323B",     // map label text
         ink2: "#4F5C66",
-        night: "#FFFFFF",   // contrast colour on ink/blend/alert fills
         muted: "#6E7882",
         faint: "#A9B0B6",
         blend: "#3B7DC4",   // map water, deepened
@@ -25,7 +24,6 @@ export default {
       boxShadow: {
         hard: "0 1px 2px rgba(38,50,59,.06), 0 4px 14px rgba(38,50,59,.08)",
         "hard-sm": "0 1px 3px rgba(38,50,59,.12)",
-        soft: "0 8px 24px -12px rgba(0,0,0,.6)",
       },
       keyframes: {
         rise: { from: { opacity: 0, transform: "translateY(8px)" }, to: { opacity: 1, transform: "none" } },

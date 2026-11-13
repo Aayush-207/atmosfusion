@@ -24,13 +24,6 @@ const BASEMAPS: Record<string, { label: string; style: string | maplibregl.Style
   },
 };
 
-function dot(color: string, selected: boolean, alert: boolean) {
-  const r = selected ? 9 : 6;
-  const ring = selected ? "#26323B" : alert ? "#D9453A" : "transparent";
-  const size = r * 2 + 10;
-  return { size, svg: `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'><circle cx='${size / 2}' cy='${size / 2}' r='${r + 3}' fill='none' stroke='${ring}' stroke-width='2'/><circle cx='${size / 2}' cy='${size / 2}' r='${r}' fill='${color}' stroke='#fff' stroke-width='2.5'/></svg>` };
-}
-
 // Label goes left when another gauge sits just east, so neighbouring labels don't overlap.
 // ponytail: fixed lat/lng window, tuned for zoom ~11; real collision detection if gauges get dense
 function labelSide(s: WeatherStation, all: WeatherStation[]) {
@@ -39,7 +32,9 @@ function labelSide(s: WeatherStation, all: WeatherStation[]) {
 
 function pinHtml(s: WeatherStation, color: string, selected: boolean, side: "left" | "right") {
   const alert = !!s.active_alert;
-  const { size, svg } = dot(color, selected, alert);
+  const r = selected ? 9 : 6, size = r * 2 + 10, c = size / 2;
+  const ring = selected ? "#26323B" : alert ? "#D9453A" : "transparent";
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'><circle cx='${c}' cy='${c}' r='${r + 3}' fill='none' stroke='${ring}' stroke-width='2'/><circle cx='${c}' cy='${c}' r='${r}' fill='${color}' stroke='#fff' stroke-width='2.5'/></svg>`;
   const pulse = alert ? `<span class="absolute inset-0 rounded-full border-2 border-alert animate-pulse_ring"></span>` : "";
   const pos = side === "right" ? `left:${size + 2}px` : `right:${size + 2}px;text-align:right`;
   const chip = selected ? "bg-ink text-white border-ink" : "bg-white text-ink border-black/10";
@@ -72,24 +67,19 @@ function StationCard({ station }: { station: WeatherStation }) {
           </div>
         ))}
       </div>
-      {station.active_alert && <div className="mt-2 -mx-3 -mb-3 px-3 py-1.5 bg-alert text-night text-[11px] font-semibold uppercase tracking-wider">Active alert</div>}
+      {station.active_alert && <div className="mt-2 -mx-3 -mb-3 px-3 py-1.5 bg-alert text-white text-[11px] font-semibold uppercase tracking-wider">Active alert</div>}
     </div>
   );
 }
 
-function useMapData() {
+function VectorMap({ basemap }: { basemap: string }) {
   const { forecast, cells: all, selectStation, selectedStationId, layerMode } = useWeatherStore();
   const stations = useMemo(() => forecast?.stations ?? [], [forecast]);
   const colorOf = LAYERS[layerMode].color;
   const cells = useMemo(
-    () => (layerMode === "coverage" ? stations.flatMap((s) => (all[s.id] ? [{ station: s, feature: all[s.id] }] : [])) : []),
+    () => (layerMode === "coverage" ? stations.flatMap((st) => (all[st.id] ? [{ station: st, feature: all[st.id] }] : [])) : []),
     [layerMode, stations, all],
   );
-  return { stations, selectStation, selectedStationId, colorOf, cells };
-}
-
-function VectorMap({ basemap }: { basemap: string }) {
-  const { stations, selectStation, selectedStationId, colorOf, cells } = useMapData();
   const box = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const styleKey = useRef(basemap);
@@ -196,7 +186,7 @@ function LayerBar() {
           key={id}
           ref={(el) => { refs.current[id] = el; }}
           onClick={() => setLayerMode(id)}
-          className={`relative px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[3px] transition-colors duration-300 ${layerMode === id ? "text-night" : "text-muted hover:text-ink"}`}
+          className={`relative px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[3px] transition-colors duration-300 ${layerMode === id ? "text-white" : "text-muted hover:text-ink"}`}
         >
           {LAYERS[id].label}
         </button>

@@ -37,8 +37,15 @@
   .label { @apply text-[10.5px] uppercase tracking-[0.14em] text-muted font-semibold; }
   .num { @apply font-data tabular-nums; }
   .card { @apply bg-surface border border-line rounded-[4px]; }
-  .section-head { @apply flex items-center gap-2 mb-3; }
+  /* Section headers: coloured marker + bold label in the section's colour, hairline to the edge */
+  .section-head { @apply flex items-center gap-2 mb-3.5; color: var(--sec, #26323B); }
+  .section-head::before { content: ""; @apply w-[3px] h-3.5 rounded-full; background: currentColor; }
   .section-head::after { content: ""; @apply flex-1 h-px bg-line; }
-  .lift { @apply transition-[transform,box-shadow] duration-200; }
-  .lift:hover { @apply -translate-x-px -translate-y-px shadow-hard; }
+  .section-head .label { @apply text-[11.5px] font-bold tracking-[0.09em]; color: inherit; }
+  .sec-ink { --sec: #26323B; }
+  .sec-blue { --sec: #2F6FB3; }
+  .sec-green { --sec: #3F8A51; }
+  .sec-amber { --sec: #B8701A; }
+  .sec-violet { --sec: #7452A8; }
+  .sec-grey { --sec: #5B6772; }
 }

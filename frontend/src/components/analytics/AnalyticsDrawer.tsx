@@ -24,7 +24,7 @@ function Stat({ label, value, unit, i }: { label: string; value: number; unit: s
   return (
     <div className="p-3 bg-surface animate-rise" style={{ animationDelay: `${i * 60}ms` }}>
       <div className="text-[11px] text-muted">{label}</div>
-      <div className="text-[24px] leading-none mt-1.5 font-semibold tracking-tight tabular-nums">
+      <div className="text-[24px] leading-none mt-1.5 font-bold tracking-tight tabular-nums text-ink">
         {value}<span className="text-xs text-muted font-normal"> {unit}</span>
       </div>
     </div>
@@ -91,7 +91,7 @@ export default function AnalyticsDrawer() {
 
   return (
     <aside className="font-data w-[350px] flex-shrink-0 border-l border-line bg-surface overflow-y-auto">
-      <div className="p-5 space-y-7">
+      <div className="p-5 space-y-8">
         {station?.active_alert && (
           <div key={`alert-${station.id}`} className="animate-rise rounded-md border border-alert/30 border-l-[3px] border-l-alert p-3.5 bg-alert/[0.06]">
             <div className="flex items-center gap-2 text-alert">
@@ -104,7 +104,7 @@ export default function AnalyticsDrawer() {
 
         {station && (
           <section key={station.id}>
-            <div className="section-head"><span className="label">Day-1 forecast</span></div>
+            <div className="section-head sec-blue"><span className="label">Day-1 forecast</span></div>
             <div className="card grid grid-cols-2 gap-px bg-line overflow-hidden">
               <Stat i={0} label="Blend" value={station.consensus_blend} unit="mm" />
               <Stat i={1} label="90th percentile" value={station.worst_case_90th} unit="mm" />
@@ -132,13 +132,13 @@ export default function AnalyticsDrawer() {
 
         {station && (
           <section>
-            <div className="section-head"><span className="label">10-day outlook · mm</span></div>
+            <div className="section-head sec-violet"><span className="label">10-day outlook · mm</span></div>
             <Outlook id={station.id} />
           </section>
         )}
 
         <section>
-          <div className="section-head"><span className="label">Stations by {layer.label.toLowerCase()}</span></div>
+          <div className="section-head sec-grey"><span className="label">Stations by {layer.label.toLowerCase()}</span></div>
           <ol className="space-y-1">
             {stations.map((s, i) => {
               const sel = s.id === station?.id;

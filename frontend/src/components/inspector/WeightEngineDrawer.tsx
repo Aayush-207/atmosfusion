@@ -15,10 +15,10 @@ export default function WeightEngineDrawer() {
         <p className="p-5 text-sm text-muted">Select a station on the map.</p>
       ) : (
         // key re-mounts on selection so the entry animations replay
-        <div key={station.id} className="p-5 space-y-7">
+        <div key={station.id} className="p-5 space-y-8">
           <section className="animate-rise">
-            <div className="section-head"><span className="label">Station</span></div>
-            <h2 className="text-[22px] leading-tight font-semibold tracking-tight">{station.name}</h2>
+            <div className="section-head sec-ink"><span className="label">Station</span></div>
+            <h2 className="text-[24px] leading-tight font-bold tracking-tight">{station.name}</h2>
             <div className="flex flex-wrap gap-1.5 mt-3">
               <Tag icon={<Mountain size={12} />}>{station.elevation_m} m</Tag>
               <Tag icon={<MapPin size={12} />}>{station.terrain_type}</Tag>
@@ -26,22 +26,22 @@ export default function WeightEngineDrawer() {
           </section>
 
           <section className="animate-rise" style={delay(2)}>
-            <div className="section-head"><span className="label">Model weights</span></div>
+            <div className="section-head sec-blue"><span className="label">Model weights</span></div>
             <div className="space-y-3.5">
               {Object.entries(station.assigned_weights)
                 .sort(([, a], [, b]) => b - a)
                 .map(([key, w], i) => (
                   <div key={key} className="group animate-rise" style={delay(i + 3)}>
                     <div className="flex items-baseline justify-between text-[13px]">
-                      <span className="font-medium flex items-center gap-2">
+                      <span className="font-semibold text-ink flex items-center gap-2">
                         <span className="w-2 h-2 rounded-[2px]" style={{ background: MODEL_COLORS[key] ?? "#A9B0B6" }} />
                         {MODEL_LABELS[key] ?? key}
                       </span>
-                      <span className="num font-medium">{Math.round(w * 100)}<span className="text-faint">%</span></span>
+                      <span className="num text-[14px] font-bold text-ink">{Math.round(w * 100)}<span className="text-faint font-medium">%</span></span>
                     </div>
-                    <div className="h-2 bg-paper border border-line rounded-[2px] mt-1.5 overflow-hidden">
+                    <div className="h-1.5 bg-paper rounded-full mt-1.5 overflow-hidden">
                       <div
-                        className="h-full origin-left animate-grow group-hover:brightness-110 transition-[filter]"
+                        className="h-full rounded-full origin-left animate-grow group-hover:brightness-110 transition-[filter]"
                         style={{ width: `${w * 100}%`, background: MODEL_COLORS[key] ?? "#A9B0B6", ...delay(i + 4) }}
                       />
                     </div>
@@ -55,14 +55,14 @@ export default function WeightEngineDrawer() {
           </section>
 
           <section className="animate-rise" style={delay(9)}>
-            <div className="section-head"><span className="label">Blend vs simple average</span></div>
+            <div className="section-head sec-green"><span className="label">Blend vs simple average</span></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="card border-line p-3">
                 <div className="text-[11px] text-muted">Simple average</div>
                 <div className="num text-xl text-muted">{station.simple_average}<span className="text-xs"> mm</span></div>
               </div>
-              <div className="card shadow-hard p-3 bg-blend text-night border-blend">
-                <div className="text-[11px] text-night/70">AtmosFusion blend</div>
+              <div className="card shadow-hard p-3 bg-blend text-white border-blend">
+                <div className="text-[11px] text-white/70">AtmosFusion blend</div>
                 <div className="num text-xl font-medium">{station.consensus_blend}<span className="text-xs"> mm</span></div>
               </div>
             </div>
@@ -71,7 +71,7 @@ export default function WeightEngineDrawer() {
 
           {station.shap_explanation && (
             <section className="animate-rise" style={delay(11)}>
-              <div className="section-head"><span className="label">Why these weights</span></div>
+              <div className="section-head sec-amber"><span className="label">Why these weights</span></div>
               <blockquote className="relative border-l-[3px] border-accent bg-accent/10 pl-4 pr-3 py-3 rounded-r-[4px]">
                 <Sparkles size={14} className="absolute right-3 top-3 text-accent" />
                 <p className="text-[13.5px] leading-relaxed text-ink2 pr-5">{station.shap_explanation}</p>

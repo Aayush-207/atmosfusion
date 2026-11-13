@@ -14,6 +14,7 @@ class WeatherStation(BaseModel):
     lng: float
     elevation_m: int
     terrain_type: str
+    reach_km: float           # representative radius of the gauge (WMO density class)
     observed_rain_24h: float
     model_predictions: Dict[str, float]
     assigned_weights: Dict[str, float]
@@ -32,14 +33,12 @@ class WeatherStation(BaseModel):
 
 
 class RegionForecast(BaseModel):
-    region_id: str
     region_name: str
     regime: str
     regime_confidence: float
     season: str
     lead_day: int
     stations: List[WeatherStation]
-    grid_summary: Dict[str, float]
 
 
 class VerificationRow(BaseModel):
