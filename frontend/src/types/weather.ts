@@ -1,5 +1,7 @@
 // Mirrors backend/models.py
 
+export const API = "http://localhost:8000/api/v1";
+
 export interface WeatherStation {
   id: string;
   name: string;
@@ -22,7 +24,8 @@ export interface WeatherStation {
   dominant_family: string; // "Physics" | "Ensemble" | "AI"
   shap_explanation: string;
   disagreement_index: number; // max - min across models (mm)
-  coverage_radius_km?: number; // computed client-side from Voronoi cells
+  coverage_radius_km?: number; // equivalent-circle radius of the clipped Voronoi cell
+  coverage_area_km2?: number;
 }
 
 export interface RegionForecast {
@@ -34,6 +37,14 @@ export interface RegionForecast {
   lead_day: number;
   stations: WeatherStation[];
   grid_summary: Record<string, number>;
+}
+
+export interface QuantilePoint {
+  lead_day: number;
+  p10: number;
+  p50: number;
+  p90: number;
+  simple_avg: number;
 }
 
 export interface VerificationRow {
@@ -67,33 +78,33 @@ export const MODEL_FAMILIES: Record<string, string> = {
 };
 
 export const MODEL_COLORS: Record<string, string> = {
-  gfs: "#3d5a80",
-  ncum: "#5b7fa6",
-  wrf: "#8aa4c2",
-  ecmwf: "#24476b",
-  graphcast: "#2a9d8f",
-  aifs: "#7cc0b5",
+  gfs: "#5B8BD9",
+  ncum: "#8DB1E8",
+  wrf: "#93B1DD",
+  ecmwf: "#3F6FC4",
+  graphcast: "#2E9C88",
+  aifs: "#6CC2AF",
 };
 
 export const FAMILY_COLORS: Record<string, string> = {
-  Physics: "#3d5a80",
-  AI: "#2a9d8f",
-  Ensemble: "#8a5a9b",
+  Physics: "#3B7DC4",
+  AI: "#2E9C88",
+  Ensemble: "#8E5BB5",
 };
 
 type Legend = { color: string; label: string }[];
 
 // IMD 24h rainfall categories
 const RAIN: [number, string, string][] = [
-  [204.5, "#9f1d1d", "Extremely heavy ≥204.5"],
-  [115.6, "#d1601c", "Very heavy ≥115.6"],
-  [64.5, "#08306b", "Heavy ≥64.5"],
-  [35.5, "#2171b5", "Mod. heavy ≥35.5"],
-  [7.5, "#6baed6", "Moderate ≥7.5"],
-  [0, "#a9cce3", "Light"],
+  [204.5, "#C62D3A", "Extremely heavy ≥204.5"],
+  [115.6, "#E8702A", "Very heavy ≥115.6"],
+  [64.5, "#E5B21F", "Heavy ≥64.5"],
+  [35.5, "#2F6FC0", "Mod. heavy ≥35.5"],
+  [7.5, "#4F9FDB", "Moderate ≥7.5"],
+  [0, "#8CC8E8", "Light"],
 ];
 const rain = (mm: number) => RAIN.find(([t]) => mm >= t)![1];
-const tri = (v: number, hi: number, mid: number) => (v >= hi ? "#c2410c" : v >= mid ? "#b7791f" : "#3f7d4e");
+const tri = (v: number, hi: number, mid: number) => (v >= hi ? "#D9453A" : v >= mid ? "#C98A12" : "#4E9A5E");
 
 export const LAYERS: Record<LayerMode, { label: string; caption: string; color: (s: WeatherStation) => string; legend: Legend }> = {
   consensus: {
@@ -112,18 +123,19 @@ export const LAYERS: Record<LayerMode, { label: string; caption: string; color: 
     label: "Disagreement",
     caption: "Spread between models. Wider spread means less certain forecast.",
     color: (s) => tri(s.disagreement_index, 100, 25),
-    legend: [{ color: "#c2410c", label: "≥100 mm" }, { color: "#b7791f", label: "25–100 mm" }, { color: "#3f7d4e", label: "<25 mm" }],
+    legend: [{ color: "#D9453A", label: "≥100 mm" }, { color: "#C98A12", label: "25–100 mm" }, { color: "#4E9A5E", label: "<25 mm" }],
   },
   risk: {
     label: "Risk",
     caption: "Plausible upper bound of the blend, for extreme-event preparedness.",
     color: (s) => tri(s.worst_case_90th, 115.6, 64.5),
-    legend: [{ color: "#c2410c", label: "≥115.6 mm" }, { color: "#b7791f", label: "64.5–115.6 mm" }, { color: "#3f7d4e", label: "<64.5 mm" }],
+    legend: [{ color: "#D9453A", label: "≥115.6 mm" }, { color: "#C98A12", label: "64.5–115.6 mm" }, { color: "#4E9A5E", label: "<64.5 mm" }],
   },
   coverage: {
     label: "Coverage",
-    caption: "Voronoi area each gauge represents. Large cells mark network gaps.",
-    color: () => "#8a5a9b",
-    legend: [{ color: "#8a5a9b", label: "Gauge influence area" }],
+    caption: "Area each gauge represents (Voronoi cell, capped at 20 km reach). Large cells mark network gaps.",
+    // Bigger cell = each gauge stands for more ground = sparser network there.
+    color: (s) => tri(s.coverage_radius_km ?? 0, 16, 10),
+    legend: [{ color: "#D9453A", label: "≥16 km radius · sparse" }, { color: "#C98A12", label: "10–16 km radius" }, { color: "#4E9A5E", label: "<10 km radius · dense" }],
   },
 };

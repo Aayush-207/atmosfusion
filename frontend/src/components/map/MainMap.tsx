@@ -1,41 +1,54 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { MapContainer, TileLayer, GeoJSON, Marker, Tooltip, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import { GoogleMap, useLoadScript, MarkerF, InfoWindowF, PolygonF } from "@react-google-maps/api";
-import * as turf from "@turf/turf";
+import { useEffect, useState, useMemo, useRef, useLayoutEffect } from "react";
+import { Layers } from "lucide-react";
+import * as maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { useWeatherStore } from "@/store/useWeatherStore";
 import { LAYERS, type WeatherStation, type LayerMode } from "@/types/weather";
 
-const GMAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 const CENTER = { lat: 18.5204, lng: 73.8567 };
 
-const LIGHT_GOOGLE_STYLES: google.maps.MapTypeStyle[] = [
-  { elementType: "geometry", stylers: [{ color: "#f3f0e8" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#6f6a60" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#f3f0e8" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#e3ded2" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#d6e2e6" }] },
-  { featureType: "poi", stylers: [{ visibility: "off" }] },
-  { featureType: "transit", stylers: [{ visibility: "off" }] },
-];
+const esri = (svc: string) => `https://server.arcgisonline.com/ArcGIS/rest/services/${svc}/MapServer/tile/{z}/{y}/{x}`;
+const raster = (id: string, url: string) => ({ id, source: { type: "raster" as const, tiles: [url], tileSize: 256, maxzoom: 19 } });
+const SAT = [raster("sat", esri("World_Imagery")), raster("roads", esri("Reference/World_Transportation")), raster("places", esri("Reference/World_Boundaries_and_Places"))];
+
+// OpenFreeMap vector style (no key) renders smoothly at every zoom; satellite stays raster.
+const BASEMAPS: Record<string, { label: string; style: string | maplibregl.StyleSpecification }> = {
+  map: { label: "Map", style: "https://tiles.openfreemap.org/styles/liberty" },
+  satellite: {
+    label: "Satellite",
+    style: {
+      version: 8,
+      sources: Object.fromEntries(SAT.map((l) => [l.id, l.source])),
+      layers: SAT.map((l) => ({ id: l.id, type: "raster" as const, source: l.id })),
+    },
+  },
+};
 
 function dot(color: string, selected: boolean, alert: boolean) {
   const r = selected ? 9 : 6;
-  const ring = selected ? "#1d2733" : alert ? "#c2410c" : "transparent";
+  const ring = selected ? "#26323B" : alert ? "#D9453A" : "transparent";
   const size = r * 2 + 10;
-  return { size, svg: `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'><circle cx='${size / 2}' cy='${size / 2}' r='${r + 3}' fill='none' stroke='${ring}' stroke-width='1.5'/><circle cx='${size / 2}' cy='${size / 2}' r='${r}' fill='${color}' stroke='#fff' stroke-width='2'/></svg>` };
+  return { size, svg: `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'><circle cx='${size / 2}' cy='${size / 2}' r='${r + 3}' fill='none' stroke='${ring}' stroke-width='2'/><circle cx='${size / 2}' cy='${size / 2}' r='${r}' fill='${color}' stroke='#fff' stroke-width='2.5'/></svg>` };
 }
 
-function leafletIcon(color: string, selected: boolean, alert: boolean, name: string) {
+// Label goes left when another gauge sits just east, so neighbouring labels don't overlap.
+// ponytail: fixed lat/lng window, tuned for zoom ~11; real collision detection if gauges get dense
+function labelSide(s: WeatherStation, all: WeatherStation[]) {
+  return all.some((o) => o !== s && o.lng > s.lng && o.lng - s.lng < 0.15 && Math.abs(o.lat - s.lat) < 0.05) ? "left" : "right";
+}
+
+function pinHtml(s: WeatherStation, color: string, selected: boolean, side: "left" | "right") {
+  const alert = !!s.active_alert;
   const { size, svg } = dot(color, selected, alert);
-  return L.divIcon({
-    className: "",
-    // Only the selected station is labelled; gauges cluster and labels collide otherwise.
-    html: `<div style="display:flex;flex-direction:column;align-items:center">${svg}${selected ? `<span style="font:600 11px 'IBM Plex Sans',sans-serif;color:#1d2733;white-space:nowrap;text-shadow:0 0 3px #fbfaf6,0 0 3px #fbfaf6,0 0 3px #fbfaf6">${name}</span>` : ""}</div>`,
-    iconSize: [140, size + 16],
-    iconAnchor: [70, size / 2],
-  });
+  const pulse = alert ? `<span class="absolute inset-0 rounded-full border-2 border-alert animate-pulse_ring"></span>` : "";
+  const pos = side === "right" ? `left:${size + 2}px` : `right:${size + 2}px;text-align:right`;
+  const chip = selected ? "bg-ink text-white border-ink" : "bg-white text-ink border-black/10";
+  const sub = selected ? "text-white/70" : "text-muted";
+  return `<div class="relative cursor-pointer transition-transform duration-200 hover:scale-110" style="width:${size}px;height:${size}px">${pulse}${svg}
+    <div class="absolute top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-[4px] border whitespace-nowrap leading-tight shadow-[0_1px_4px_rgba(0,0,0,.3)] ${chip}" style="${pos}">
+      <div class="text-[11px] font-semibold">${s.name}</div>
+      <div class="text-[9.5px] ${sub}">${s.terrain_type} · <span class="font-data">${s.consensus_blend} mm</span></div>
+    </div></div>`;
 }
 
 function StationCard({ station }: { station: WeatherStation }) {
@@ -46,9 +59,9 @@ function StationCard({ station }: { station: WeatherStation }) {
     ["P(heavy ≥64.5)", `${Math.round(station.p_heavy_rain * 100)}%`],
   ];
   return (
-    <div className="card shadow-lg w-[220px] p-3 font-sans text-ink">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="font-semibold text-[13px] truncate">{station.name}</span>
+    <div className="card shadow-hard w-[230px] p-3 font-sans text-ink">
+      <div className="flex items-baseline justify-between gap-2 pb-2 border-b border-dashed">
+        <span className="font-semibold text-[14px] truncate">{station.name}</span>
         <span className="text-[11px] text-muted num">{station.elevation_m} m</span>
       </div>
       <div className="mt-2 space-y-0.5 text-xs">
@@ -59,149 +72,131 @@ function StationCard({ station }: { station: WeatherStation }) {
           </div>
         ))}
       </div>
-      {station.active_alert && <div className="mt-2 pt-2 border-t text-[11px] text-alert font-medium">Active alert</div>}
+      {station.active_alert && <div className="mt-2 -mx-3 -mb-3 px-3 py-1.5 bg-alert text-night text-[11px] font-semibold uppercase tracking-wider">Active alert</div>}
     </div>
   );
 }
 
-function FitBounds({ stations }: { stations: WeatherStation[] }) {
-  const map = useMap();
-  useEffect(() => {
-    if (stations.length) map.fitBounds(stations.map((s) => [s.lat, s.lng] as [number, number]), { padding: [80, 80], maxZoom: 12 });
-  }, [stations, map]);
-  return null;
-}
-
-function useVoronoi(stations: WeatherStation[], on: boolean) {
-  return useMemo(() => {
-    if (!on || stations.length < 3) return [];
-    const points = turf.featureCollection(stations.map((s) => turf.point([s.lng, s.lat])));
-    const bbox = turf.bbox(turf.buffer(points, 30, { units: "kilometers" })!);
-    return turf.voronoi(points, { bbox }).features.flatMap((f, i) => {
-      if (!f) return [];
-      // ponytail: mutates station so AnalyticsDrawer can show radius; move into store if it ever needs reactivity
-      stations[i].coverage_radius_km = Math.round(Math.sqrt(turf.area(f) / 1e6 / Math.PI));
-      return [{ station: stations[i], feature: f }];
-    });
-  }, [stations, on]);
-}
-
 function useMapData() {
-  const { forecast, selectStation, selectedStationId, layerMode } = useWeatherStore();
-  const stations = forecast?.stations ?? [];
+  const { forecast, cells: all, selectStation, selectedStationId, layerMode } = useWeatherStore();
+  const stations = useMemo(() => forecast?.stations ?? [], [forecast]);
   const colorOf = LAYERS[layerMode].color;
-  return { stations, selectStation, selectedStationId, colorOf, cells: useVoronoi(stations, layerMode === "coverage") };
-}
-
-function OSMMap() {
-  const { stations, selectStation, selectedStationId, colorOf, cells } = useMapData();
-  return (
-    <MapContainer center={[CENTER.lat, CENTER.lng]} zoom={11} className="w-full h-full" zoomControl={false}>
-      <TileLayer
-        url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
-        attribution="Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors"
-        maxZoom={16}
-      />
-      <FitBounds stations={stations} />
-      {cells.map(({ station, feature }) => {
-        const sel = station.id === selectedStationId;
-        return (
-          <GeoJSON
-            key={`cell-${station.id}-${sel}`}
-            data={feature}
-            pathOptions={{ color: colorOf(station), fillOpacity: sel ? 0.18 : 0.05, weight: sel ? 2 : 1 }}
-            eventHandlers={{ click: () => selectStation(station.id) }}
-          />
-        );
-      })}
-      {stations.map((s) => (
-        <Marker
-          key={s.id}
-          position={[s.lat, s.lng]}
-          icon={leafletIcon(colorOf(s), s.id === selectedStationId, !!s.active_alert, s.name)}
-          eventHandlers={{ click: () => selectStation(s.id) }}
-        >
-          <Tooltip direction="top" offset={[0, -14]} opacity={1}>
-            <StationCard station={s} />
-          </Tooltip>
-        </Marker>
-      ))}
-    </MapContainer>
+  const cells = useMemo(
+    () => (layerMode === "coverage" ? stations.flatMap((s) => (all[s.id] ? [{ station: s, feature: all[s.id] }] : [])) : []),
+    [layerMode, stations, all],
   );
+  return { stations, selectStation, selectedStationId, colorOf, cells };
 }
 
-function GoogleMapView() {
+function VectorMap({ basemap }: { basemap: string }) {
   const { stations, selectStation, selectedStationId, colorOf, cells } = useMapData();
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const { isLoaded, loadError } = useLoadScript({ googleMapsApiKey: GMAPS_KEY, id: "atmfusion-gmap" });
+  const box = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const styleKey = useRef(basemap);
+  const [styleTick, setStyleTick] = useState(0); // bumps on every style load so overlays get re-added
+  const [hover, setHover] = useState<{ s: WeatherStation; x: number; y: number } | null>(null);
 
-  const onLoad = useCallback((map: google.maps.Map) => {
-    const bounds = new google.maps.LatLngBounds();
-    stations.forEach((s) => bounds.extend({ lat: s.lat, lng: s.lng }));
-    if (stations.length) map.fitBounds(bounds, 80);
+  useEffect(() => {
+    const map = new maplibregl.Map({
+      container: box.current!,
+      style: BASEMAPS[styleKey.current].style,
+      center: [CENTER.lng, CENTER.lat],
+      zoom: 10,
+      attributionControl: { compact: true },
+      fadeDuration: 200,
+    });
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
+    map.addControl(new maplibregl.ScaleControl({}), "bottom-right");
+    map.on("style.load", () => setStyleTick((t) => t + 1));
+    map.on("click", "cells-fill", (e) => {
+      const id = e.features?.[0]?.properties?.id;
+      if (id) useWeatherStore.getState().selectStation(id);
+    });
+    mapRef.current = map;
+    return () => map.remove();
+  }, []);
+
+  useEffect(() => {
+    if (styleKey.current === basemap) return;
+    styleKey.current = basemap;
+    // diff:false forces a full reload so "style.load" fires and the cell layers get re-added
+    mapRef.current?.setStyle(BASEMAPS[basemap].style, { diff: false });
+  }, [basemap]);
+
+  const fitted = useRef(false);
+  useEffect(() => {
+    if (fitted.current || !stations.length || !mapRef.current) return;
+    fitted.current = true;
+    const b = new maplibregl.LngLatBounds();
+    stations.forEach((s) => b.extend([s.lng, s.lat]));
+    mapRef.current.fitBounds(b, { padding: { top: 90, bottom: 90, left: 100, right: 220 }, maxZoom: 12, duration: 1200 });
   }, [stations]);
 
-  if (loadError || !isLoaded)
-    return <div className="w-full h-full flex items-center justify-center text-sm text-muted">{loadError ? "Google Maps failed to load. Check the API key." : "Loading map…"}</div>;
+  // Voronoi cells as a GeoJSON fill layer; colours come from feature properties.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleTick) return;
+    const data: GeoJSON.FeatureCollection = {
+      type: "FeatureCollection",
+      features: cells.map(({ station, feature }) => ({ ...feature, properties: { id: station.id, color: colorOf(station), sel: station.id === selectedStationId } })),
+    };
+    const src = map.getSource("cells") as maplibregl.GeoJSONSource | undefined;
+    if (src) return void src.setData(data);
+    map.addSource("cells", { type: "geojson", data });
+    map.addLayer({ id: "cells-fill", type: "fill", source: "cells", paint: { "fill-color": ["get", "color"], "fill-opacity": ["case", ["get", "sel"], 0.25, 0.1] } });
+    map.addLayer({ id: "cells-line", type: "line", source: "cells", paint: { "line-color": ["get", "color"], "line-width": ["case", ["get", "sel"], 2.5, 1.2] } });
+  }, [cells, colorOf, selectedStationId, styleTick]);
+
+  // HTML markers sit above the canvas, so they survive style switches untouched.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const markers = stations.map((s) => {
+      const sel = s.id === selectedStationId;
+      const el = document.createElement("div");
+      el.innerHTML = pinHtml(s, colorOf(s), sel, labelSide(s, stations));
+      el.style.zIndex = sel ? "2" : "1";
+      el.onclick = () => selectStation(s.id);
+      el.onmouseenter = () => {
+        const p = map.project([s.lng, s.lat]);
+        setHover({ s, x: p.x, y: p.y });
+      };
+      el.onmouseleave = () => setHover(null);
+      return new maplibregl.Marker({ element: el }).setLngLat([s.lng, s.lat]).addTo(map);
+    });
+    return () => markers.forEach((m) => m.remove());
+  }, [stations, selectedStationId, colorOf, selectStation]);
 
   return (
-    <GoogleMap
-      mapContainerClassName="w-full h-full"
-      center={CENTER}
-      zoom={11}
-      options={{ styles: LIGHT_GOOGLE_STYLES, disableDefaultUI: true, backgroundColor: "#f3f0e8" }}
-      onLoad={onLoad}
-    >
-      {cells.map(({ station, feature }) => {
-        const sel = station.id === selectedStationId;
-        const color = colorOf(station);
-        return (
-          <PolygonF
-            key={`cell-${station.id}`}
-            paths={feature.geometry.coordinates[0].map(([lng, lat]) => ({ lat, lng }))}
-            options={{ strokeColor: color, strokeWeight: sel ? 2 : 1, fillColor: color, fillOpacity: sel ? 0.18 : 0.05 }}
-            onClick={() => selectStation(station.id)}
-          />
-        );
-      })}
-      {stations.map((s) => {
-        const { size, svg } = dot(colorOf(s), s.id === selectedStationId, !!s.active_alert);
-        return (
-          <MarkerF
-            key={s.id}
-            position={{ lat: s.lat, lng: s.lng }}
-            icon={{
-              url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-              scaledSize: new google.maps.Size(size, size),
-              anchor: new google.maps.Point(size / 2, size / 2),
-              labelOrigin: new google.maps.Point(size / 2, size + 8),
-            }}
-            label={s.id === selectedStationId ? { text: s.name, color: "#1d2733", fontSize: "11px", fontWeight: "600" } : undefined}
-            onClick={() => selectStation(s.id)}
-            onMouseOver={() => setHoveredId(s.id)}
-            onMouseOut={() => setHoveredId(null)}
-          >
-            {hoveredId === s.id && (
-              <InfoWindowF options={{ disableAutoPan: true }}>
-                <StationCard station={s} />
-              </InfoWindowF>
-            )}
-          </MarkerF>
-        );
-      })}
-    </GoogleMap>
+    <div className="w-full h-full relative">
+      <div ref={box} className="w-full h-full" />
+      {hover && (
+        <div className="absolute z-[5] pointer-events-none animate-rise" style={{ left: hover.x - 115, top: hover.y - 150 }}>
+          <StationCard station={hover.s} />
+        </div>
+      )}
+    </div>
   );
 }
 
 function LayerBar() {
   const { layerMode, setLayerMode } = useWeatherStore();
+  const refs = useRef<Partial<Record<LayerMode, HTMLButtonElement | null>>>({});
+  const [pill, setPill] = useState({ left: 0, width: 0 });
+  useLayoutEffect(() => {
+    const el = refs.current[layerMode];
+    if (el) setPill({ left: el.offsetLeft, width: el.offsetWidth });
+  }, [layerMode]);
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] card shadow-sm p-1 flex gap-0.5">
+    <div className="absolute top-4 left-4 z-[10] card shadow-hard p-1 flex items-center gap-0.5">
+      <span className="px-2 text-muted"><Layers size={14} /></span>
+      <span className="absolute top-1 bottom-1 bg-ink rounded-[3px] transition-all duration-300 ease-[cubic-bezier(.2,.7,.2,1)]" style={pill} />
       {(Object.keys(LAYERS) as LayerMode[]).map((id) => (
         <button
           key={id}
+          ref={(el) => { refs.current[id] = el; }}
           onClick={() => setLayerMode(id)}
-          className={`px-3 py-1.5 text-xs whitespace-nowrap rounded-md transition-colors ${layerMode === id ? "bg-ink text-surface" : "text-muted hover:text-ink hover:bg-paper"}`}
+          className={`relative px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[3px] transition-colors duration-300 ${layerMode === id ? "text-night" : "text-muted hover:text-ink"}`}
         >
           {LAYERS[id].label}
         </button>
@@ -211,12 +206,15 @@ function LayerBar() {
 }
 
 function Legend() {
-  const layer = LAYERS[useWeatherStore((s) => s.layerMode)];
+  const mode = useWeatherStore((s) => s.layerMode);
+  const layer = LAYERS[mode];
   return (
-    <div className="absolute bottom-4 left-4 z-[1000] card shadow-sm px-3 py-2.5 space-y-1">
-      {layer.legend.map(({ color, label }) => (
-        <div key={label} className="flex items-center gap-2 text-[11px] text-muted">
-          <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
+    <div key={mode} className="absolute bottom-4 left-4 z-[10] card shadow-hard px-3 py-2.5 space-y-1 w-[230px]">
+      <div className="label !text-[9.5px]">{layer.label}</div>
+      <p className="text-[11px] leading-snug text-muted pb-1.5 mb-1 border-b border-line">{layer.caption}</p>
+      {layer.legend.map(({ color, label }, i) => (
+        <div key={label} className="flex items-center gap-2 text-[11px] text-ink2 animate-rise" style={{ animationDelay: `${i * 40}ms` }}>
+          <span className="w-3 h-3 rounded-[2px] border border-ink/20" style={{ background: color }} />
           {label}
         </div>
       ))}
@@ -225,17 +223,23 @@ function Legend() {
 }
 
 export default function MainMap() {
-  const [google, setGoogle] = useState(false);
+  const [basemap, setBasemap] = useState("map");
   return (
     <div className="absolute inset-0">
-      {google ? <GoogleMapView /> : <OSMMap />}
+      <VectorMap basemap={basemap} />
+      <div className="absolute top-4 right-4 z-[10] card shadow-hard p-1 flex gap-0.5">
+        {Object.keys(BASEMAPS).map((k) => (
+          <button
+            key={k}
+            onClick={() => setBasemap(k)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-[3px] transition-colors duration-200 ${basemap === k ? "bg-ink text-white" : "text-muted hover:text-ink hover:bg-paper"}`}
+          >
+            {BASEMAPS[k].label}
+          </button>
+        ))}
+      </div>
       <LayerBar />
       <Legend />
-      {GMAPS_KEY && (
-        <button onClick={() => setGoogle((g) => !g)} className="absolute bottom-4 right-4 z-[1000] card shadow-sm px-3 py-1.5 text-xs text-muted hover:text-ink">
-          {google ? "Use OSM basemap" : "Use Google basemap"}
-        </button>
-      )}
     </div>
   );
 }

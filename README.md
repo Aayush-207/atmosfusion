@@ -45,9 +45,8 @@ Instead of relying on a single source of truth, the system employs **dynamic cel
 ![Uvicorn](https://img.shields.io/badge/Uvicorn-%2320232a.svg?style=for-the-badge)
 
 ### Mapping & Visualization
-![Deck.gl](https://img.shields.io/badge/Deck.gl-FFF?style=for-the-badge&logo=uber&logoColor=black)
 ![OpenStreetMap](https://img.shields.io/badge/OpenStreetMap-7EBC6F?style=for-the-badge&logo=openstreetmap&logoColor=white)
-![Google Maps](https://img.shields.io/badge/Google%20Maps-4285F4?style=for-the-badge&logo=googlemaps&logoColor=white)
+![MapLibre](https://img.shields.io/badge/MapLibre-396CB2?style=for-the-badge&logo=maplibre&logoColor=white)
 
 ---
 
@@ -55,7 +54,7 @@ Instead of relying on a single source of truth, the system employs **dynamic cel
 
 | 🛠️ Feature | 📖 Description |
 | :--- | :--- |
-| 🌍 **Interactive 3D Mapping** | Real-time geospatial visualization using OpenStreetMap & Deck.gl for high-performance rendering. |
+| 🌍 **Interactive 3D Mapping** | Smooth GPU-rendered vector map (MapLibre GL) with labelled gauges, coverage cells and a satellite view. |
 | ⚖️ **Dynamic Blending Engine** | Calculates cell-by-cell consensus weighting for AI and NWP models to maximize accuracy. |
 | 🧠 **Explainable AI (XAI)** | Features SHAP values and importance graphs to explain exactly *why* certain models were trusted over others. |
 | 🚨 **Extreme Weather Alerts** | Automated tracking and threshold notifications for heavy rainfall and atmospheric anomalies. |
@@ -112,10 +111,7 @@ npm run dev
 
 ## ⚙️ Environment Variables
 
-Create a `.env` file inside the `frontend/` directory. You will need a Google Maps API Key if you wish to use the Google base map layer.
-```env
-VITE_GOOGLE_MAPS_API_KEY=your_google_maps_key_here
-```
+None required. The map uses keyless OpenFreeMap vector tiles and Esri satellite imagery.
 
 <br/>
 
