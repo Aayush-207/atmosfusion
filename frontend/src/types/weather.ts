@@ -76,34 +76,44 @@ export const MODEL_FAMILIES: Record<string, string> = {
   aifs: "AI / ML",
 };
 
+// Every colour is a token in src/tokens.css; these are references to it.
+// Inline styles and SVG take var() as is; MapLibre needs the value, so use cssColor().
+const v = (name: string) => `var(--${name})`;
+
+export function cssColor(c: string) {
+  const m = /^var\((--[\w-]+)\)$/.exec(c);
+  return m ? getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim() || c : c;
+}
+
 export const MODEL_COLORS: Record<string, string> = {
-  gfs: "#5B8BD9",
-  ncum: "#8DB1E8",
-  wrf: "#93B1DD",
-  ecmwf: "#3F6FC4",
-  graphcast: "#2E9C88",
-  aifs: "#6CC2AF",
+  gfs: v("model-gfs"),
+  ncum: v("model-ncum"),
+  wrf: v("model-wrf"),
+  ecmwf: v("model-ecmwf"),
+  graphcast: v("model-graphcast"),
+  aifs: v("model-aifs"),
 };
 
 export const FAMILY_COLORS: Record<string, string> = {
-  Physics: "#3B7DC4",
-  AI: "#2E9C88",
-  Ensemble: "#8E5BB5",
+  Physics: v("family-physics"),
+  AI: v("family-ai"),
+  Ensemble: v("family-ensemble"),
 };
 
 type Legend = { color: string; label: string }[];
 
 // IMD 24h rainfall categories
 const RAIN: [number, string, string][] = [
-  [204.5, "#C62D3A", "Extremely heavy ≥204.5"],
-  [115.6, "#E8702A", "Very heavy ≥115.6"],
-  [64.5, "#E5B21F", "Heavy ≥64.5"],
-  [35.5, "#2F6FC0", "Mod. heavy ≥35.5"],
-  [7.5, "#4F9FDB", "Moderate ≥7.5"],
-  [0, "#8CC8E8", "Light"],
+  [204.5, v("rain-6"), "Extremely heavy ≥204.5"],
+  [115.6, v("rain-5"), "Very heavy ≥115.6"],
+  [64.5, v("rain-4"), "Heavy ≥64.5"],
+  [35.5, v("rain-3"), "Mod. heavy ≥35.5"],
+  [7.5, v("rain-2"), "Moderate ≥7.5"],
+  [0, v("rain-1"), "Light"],
 ];
 const rain = (mm: number) => RAIN.find(([t]) => mm >= t)![1];
-const tri = (v: number, hi: number, mid: number) => (v >= hi ? "#D9453A" : v >= mid ? "#C98A12" : "#4E9A5E");
+const HIGH = v("level-high"), MID = v("level-mid"), LOW = v("level-low");
+const tri = (x: number, hi: number, mid: number) => (x >= hi ? HIGH : x >= mid ? MID : LOW);
 
 export const LAYERS: Record<LayerMode, { label: string; caption: string; color: (s: WeatherStation) => string; legend: Legend }> = {
   consensus: {
@@ -122,19 +132,19 @@ export const LAYERS: Record<LayerMode, { label: string; caption: string; color: 
     label: "Disagreement",
     caption: "Spread between models. Wider spread means less certain forecast.",
     color: (s) => tri(s.disagreement_index, 100, 25),
-    legend: [{ color: "#D9453A", label: "≥100 mm" }, { color: "#C98A12", label: "25–100 mm" }, { color: "#4E9A5E", label: "<25 mm" }],
+    legend: [{ color: HIGH, label: "≥100 mm" }, { color: MID, label: "25 to 100 mm" }, { color: LOW, label: "<25 mm" }],
   },
   risk: {
     label: "Risk",
     caption: "Plausible upper bound of the blend, for extreme-event preparedness.",
     color: (s) => tri(s.worst_case_90th, 115.6, 64.5),
-    legend: [{ color: "#D9453A", label: "≥115.6 mm" }, { color: "#C98A12", label: "64.5–115.6 mm" }, { color: "#4E9A5E", label: "<64.5 mm" }],
+    legend: [{ color: HIGH, label: "≥115.6 mm" }, { color: MID, label: "64.5 to 115.6 mm" }, { color: LOW, label: "<64.5 mm" }],
   },
   coverage: {
     label: "Coverage",
     caption: "Area each gauge represents: its Voronoi cell, clipped to the WMO reach for its terrain (8.9 km in the Ghats, 13.5 km elsewhere).",
     // Bigger cell = each gauge stands for more ground = sparser network there.
     color: (s) => tri(s.coverage_radius_km ?? 0, 11, 8.5),
-    legend: [{ color: "#D9453A", label: "≥11 km radius · sparse" }, { color: "#C98A12", label: "8.5–11 km radius" }, { color: "#4E9A5E", label: "<8.5 km radius · dense" }],
+    legend: [{ color: HIGH, label: "≥11 km radius, sparse" }, { color: MID, label: "8.5 to 11 km radius" }, { color: LOW, label: "<8.5 km radius, dense" }],
   },
 };

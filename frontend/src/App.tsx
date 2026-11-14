@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useWeatherStore } from "./store/useWeatherStore";
 import Layout from "./components/layout/Layout";
 import { API } from "./types/weather";
+import ProductDemo from "./components/demo/ProductDemo";
 
 export default function App() {
   const { setForecast, selectStation, selectedStationId } = useWeatherStore();
@@ -39,21 +40,23 @@ export default function App() {
 
   if (isLoading || error) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="card shadow-hard px-8 py-7 w-[340px] text-center animate-rise">
-          <div className="relative mx-auto w-14 h-10 overflow-hidden">
+      <div className="flex h-screen flex-col items-center justify-center gap-6 px-4 overflow-y-auto">
+        {/* While the API is down or warming up, show what the app does instead of a bare card */}
+        <div className="w-full max-w-[720px] animate-rise">
+          <ProductDemo />
+        </div>
+        <div role="status" className="rounded-card border border-rule bg-paper shadow-card px-8 py-7 w-full max-w-[340px] text-center animate-rise [animation-delay:120ms]">
+          <div className="relative mx-auto w-14 h-10 overflow-hidden" aria-hidden>
             {[0, 1, 2, 3, 4].map((i) => (
               <span
                 key={i}
-                className={`absolute top-0 w-[2px] h-3 rounded-full ${error ? "bg-alert" : "bg-blend"} animate-rain`}
+                className={`absolute top-0 w-[2px] h-3 rounded-full ${error ? "bg-error" : "bg-accent"} animate-rain`}
                 style={{ left: `${8 + i * 10}px`, animationDelay: `${i * 170}ms` }}
               />
             ))}
           </div>
-          <div className="text-xl font-semibold tracking-tight mt-3">
-            Atmos<span className="font-normal text-accent">Fusion</span>
-          </div>
-          <p className={`text-xs mt-1.5 ${error ? "text-alert" : "text-muted"}`}>
+          <div className="font-display text-[20px] font-semibold tracking-[-0.028em] text-ink mt-3">AtmosFusion</div>
+          <p className={`text-[13px] mt-1.5 ${error ? "text-error" : "text-muted"}`}>
             {error ? "Could not reach the forecast API on localhost:8000." : "Blending six models…"}
           </p>
         </div>

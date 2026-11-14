@@ -10,8 +10,8 @@ export default function Layout() {
       <Header />
       <div className="flex-1 flex overflow-hidden">
         <WeightEngineDrawer />
-        <main className="flex-1 flex flex-col min-w-0">
-          <div className="flex-1 relative m-3 mb-0 border border-line rounded-[4px] overflow-clip shadow-hard">
+        <main className="flex-1 flex flex-col min-w-0 bg-paper2 p-4 gap-4">
+          <div className="card flex-1 min-h-0 relative overflow-clip">
             <MainMap />
           </div>
           <ScorecardTray />

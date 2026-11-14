@@ -1,119 +1,110 @@
-import type { ReactNode } from "react";
-import { Mountain, MapPin, Sparkles } from "lucide-react";
+import { Mountain, MapPin, Scale, Lightbulb } from "lucide-react";
 import { useWeatherStore } from "@/store/useWeatherStore";
 import { MODEL_LABELS, MODEL_FAMILIES, MODEL_COLORS } from "@/types/weather";
 
-const maeTone = (mae: number) => (mae <= 8 ? "text-ok" : mae <= 15 ? "text-warn" : "text-alert");
-const delay = (i: number) => ({ animationDelay: `${i * 60}ms` });
+const maeTone = (mae: number) => (mae <= 8 ? "text-success" : mae <= 15 ? "text-warning" : "text-error");
 
 export default function WeightEngineDrawer() {
   const station = useWeatherStore((s) => s.selectedStation);
 
+  if (!station) {
+    return (
+      <aside className="w-[340px] flex-shrink-0 border-r border-rule bg-paper2">
+        <p className="p-5 text-sm text-muted">Select a gauge on the map to see how its forecast is blended.</p>
+      </aside>
+    );
+  }
+
+  // Rows keyed by model, not station, so a new station eases each meter to its new length
+  const weights = Object.entries(station.assigned_weights).sort(([, a], [, b]) => b - a);
+
   return (
-    <aside className="font-data w-[330px] flex-shrink-0 border-r border-line bg-surface/90 backdrop-blur-sm overflow-y-auto">
-      {!station ? (
-        <p className="p-5 text-sm text-muted">Select a station on the map.</p>
-      ) : (
-        // key re-mounts on selection so the entry animations replay
-        <div key={station.id} className="p-5 space-y-8">
-          <section className="animate-rise">
-            <div className="section-head sec-ink"><span className="label">Station</span></div>
-            <h2 className="text-[24px] leading-tight font-bold tracking-tight">{station.name}</h2>
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              <Tag icon={<Mountain size={12} />}>{station.elevation_m} m</Tag>
-              <Tag icon={<MapPin size={12} />}>{station.terrain_type}</Tag>
-            </div>
-          </section>
+    <aside className="w-[340px] flex-shrink-0 border-r border-rule bg-paper2 overflow-y-auto">
+      <div className="p-4 space-y-4">
+        <section className="card card-body">
+          <h1 key={station.id} className="text-[23px] leading-tight animate-fade">{station.name}</h1>
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            <span className="chip"><Mountain size={12} aria-hidden /><span className="sr-only">Elevation </span><span className="num">{station.elevation_m} m</span></span>
+            <span className="chip"><MapPin size={12} aria-hidden /><span className="sr-only">Terrain </span>{station.terrain_type}</span>
+          </div>
+        </section>
 
-          <section className="animate-rise" style={delay(2)}>
-            <div className="section-head sec-blue"><span className="label">Model weights</span></div>
-            <div className="space-y-3.5">
-              {Object.entries(station.assigned_weights)
-                .sort(([, a], [, b]) => b - a)
-                .map(([key, w], i) => (
-                  <div key={key} className="group animate-rise" style={delay(i + 3)}>
-                    <div className="flex items-baseline justify-between text-[13px]">
-                      <span className="font-semibold text-ink flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-[2px]" style={{ background: MODEL_COLORS[key] ?? "#A9B0B6" }} />
-                        {MODEL_LABELS[key] ?? key}
-                      </span>
-                      <span className="num text-[14px] font-bold text-ink">{Math.round(w * 100)}<span className="text-faint font-medium">%</span></span>
-                    </div>
-                    <div className="h-1.5 bg-paper rounded-full mt-1.5 overflow-hidden">
-                      <div
-                        className="h-full rounded-full origin-left animate-grow group-hover:brightness-110 transition-[filter]"
-                        style={{ width: `${w * 100}%`, background: MODEL_COLORS[key] ?? "#A9B0B6", ...delay(i + 4) }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-[11px] text-muted mt-1">
-                      <span>{MODEL_FAMILIES[key] ?? "Unknown"} · <span className="num">{station.model_predictions[key]} mm</span></span>
-                      <span>MAE <span className={`num font-medium ${maeTone(station.recent_mae_48h[key])}`}>{station.recent_mae_48h[key]}</span></span>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </section>
+        <BlendLedger observed={station.observed_rain_24h} blend={station.consensus_blend} avg={station.simple_average} />
 
-          <section className="animate-rise" style={delay(9)}>
-            <div className="section-head sec-green"><span className="label">Blend vs simple average</span></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="card border-line p-3">
-                <div className="text-[11px] text-muted">Simple average</div>
-                <div className="num text-xl text-muted">{station.simple_average}<span className="text-xs"> mm</span></div>
-              </div>
-              <div className="card shadow-hard p-3 bg-blend text-white border-blend">
-                <div className="text-[11px] text-white/70">AtmosFusion blend</div>
-                <div className="num text-xl font-medium">{station.consensus_blend}<span className="text-xs"> mm</span></div>
-              </div>
-            </div>
-            <ErrorBars observed={station.observed_rain_24h} blend={station.consensus_blend} avg={station.simple_average} />
-          </section>
+        <section className="card">
+          <div className="card-head">
+            <h2><Scale size={14} aria-hidden />Model weights</h2>
+            <span className="aside">MAE over 48 h, mm</span>
+          </div>
+          <table className="rtable inset">
+            <thead>
+              <tr>
+                <th scope="col">Model</th>
+                <th scope="col" style={{ textAlign: "right" }}>MAE</th>
+                <th scope="col" style={{ textAlign: "right" }}>Weight</th>
+              </tr>
+            </thead>
+            <tbody>
+              {weights.map(([key, w]) => (
+                <tr key={key} className="hover:bg-paper2 transition-colors duration-micro">
+                  <td>
+                    <span className="flex items-center gap-2 font-medium text-ink text-[13px] whitespace-nowrap">
+                      <span className="w-2 h-2 rounded-[2px] flex-shrink-0" style={{ background: MODEL_COLORS[key] }} aria-hidden />
+                      {MODEL_LABELS[key] ?? key}
+                    </span>
+                    <span className="block pl-4 text-[12px] text-label">{MODEL_FAMILIES[key] ?? "Unknown"}</span>
+                  </td>
+                  <td className={`num text-right text-[13px] ${maeTone(station.recent_mae_48h[key])}`}>{station.recent_mae_48h[key]}</td>
+                  <td className="w-[72px]">
+                    <span className="figure block text-right text-[15px]">{Math.round(w * 100)}%</span>
+                    <span className="meter mt-1"><span style={{ transform: `scaleX(${w})`, background: MODEL_COLORS[key] }} /></span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
 
-          {station.shap_explanation && (
-            <section className="animate-rise" style={delay(11)}>
-              <div className="section-head sec-amber"><span className="label">Why these weights</span></div>
-              <blockquote className="relative border-l-[3px] border-accent bg-accent/10 pl-4 pr-3 py-3 rounded-r-[4px]">
-                <Sparkles size={14} className="absolute right-3 top-3 text-accent" />
-                <p className="text-[13.5px] leading-relaxed text-ink2 pr-5">{station.shap_explanation}</p>
-              </blockquote>
-            </section>
-          )}
-        </div>
-      )}
+        {station.shap_explanation && (
+          <section className="card">
+            <div className="card-head"><h2><Lightbulb size={14} aria-hidden />Why these weights</h2></div>
+            <p className="card-body text-[13.5px] leading-relaxed text-ink2">{station.shap_explanation}</p>
+          </section>
+        )}
+      </div>
     </aside>
   );
 }
 
-function Tag({ icon, children }: { icon: ReactNode; children: ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 border border-line bg-paper rounded-full text-ink2">
-      {icon}{children}
-    </span>
-  );
-}
-
-// Absolute miss against the gauge's observed 24h rainfall: the headline proof that skill-weighting beats flat averaging.
-function ErrorBars({ observed, blend, avg }: { observed: number; blend: number; avg: number }) {
+// The signature: the blended figure set large on the darkest shade, and the proof under it, the miss against
+// the gauge compared with a flat average of every model.
+function BlendLedger({ observed, blend, avg }: { observed: number; blend: number; avg: number }) {
   const eb = Math.abs(blend - observed), ea = Math.abs(avg - observed);
   const top = Math.max(eb, ea, 1);
-  const rows: [string, number, string][] = [["Blend", eb, "bg-blend"], ["Average", ea, "bg-faint"]];
+  const rows: [string, number, string][] = [["Blend", eb, "var(--color-accent-2)"], ["Average", ea, "var(--color-graphite-muted)"]];
   return (
-    <div className="mt-3 rounded-md bg-paper border border-line p-3">
-      <div className="flex items-baseline justify-between text-[11px]">
-        <span className="text-muted">Error vs observed <span className="num text-ink">{observed} mm</span></span>
-        {ea > eb && <span className="font-semibold text-ok">{Math.round((1 - eb / ea) * 100)}% smaller</span>}
+    <section className="graphite p-4 shadow-card" aria-label="Blended forecast">
+      <div className="text-[13px] text-gmuted">AtmosFusion blend, next 24 h</div>
+      <div className="font-display font-semibold tracking-[-0.028em] num text-[44px] leading-none mt-1.5 text-gink">
+        {blend}<span className="text-[18px] font-medium text-gmuted"> mm</span>
       </div>
-      <div className="mt-2 space-y-1.5">
-        {rows.map(([label, v, cls], i) => (
-          <div key={label} className="flex items-center gap-2 text-[11px]">
-            <span className="w-14 text-muted">{label}</span>
-            <span className="flex-1 h-1.5 bg-surface rounded-full overflow-hidden">
-              <span className={`block h-full ${cls} rounded-full origin-left animate-grow`} style={{ width: `${(v / top) * 100}%`, animationDelay: `${300 + i * 80}ms` }} />
-            </span>
-            <span className="num w-14 text-right">{v.toFixed(1)} mm</span>
+      <dl className="mt-3 grid grid-cols-2 gap-3 text-[13px]">
+        <div className="rounded-input bg-graphite2 px-2.5 py-2"><dt className="text-gmuted">Simple average</dt><dd className="num text-gink font-medium">{avg} mm</dd></div>
+        <div className="rounded-input bg-graphite2 px-2.5 py-2"><dt className="text-gmuted">Gauge observed</dt><dd className="num text-gink font-medium">{observed} mm</dd></div>
+      </dl>
+      <div className="mt-4 space-y-2">
+        <div className="flex items-baseline justify-between gap-2 text-[12px]">
+          <span className="text-gmuted">Miss against the gauge</span>
+          {ea > eb && <span className="font-medium text-accent2">{Math.round((1 - eb / ea) * 100)}% smaller</span>}
+        </div>
+        {rows.map(([label, v, color]) => (
+          <div key={label} className="grid grid-cols-[56px_1fr_56px] items-center gap-2 text-[12px]">
+            <span className="text-gmuted">{label}</span>
+            <span className="meter !bg-graphite2"><span style={{ transform: `scaleX(${v / top})`, background: color }} /></span>
+            <span className="num text-right text-gink">{v.toFixed(1)} mm</span>
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }

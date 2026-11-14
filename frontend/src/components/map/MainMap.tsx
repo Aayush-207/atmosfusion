@@ -1,9 +1,9 @@
-import { useEffect, useState, useMemo, useRef, useLayoutEffect } from "react";
-import { Layers } from "lucide-react";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { Info, TriangleAlert } from "lucide-react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useWeatherStore } from "@/store/useWeatherStore";
-import { LAYERS, type WeatherStation, type LayerMode } from "@/types/weather";
+import { LAYERS, cssColor, type WeatherStation, type LayerMode } from "@/types/weather";
 
 const CENTER = { lat: 18.5204, lng: 73.8567 };
 
@@ -33,41 +33,45 @@ function labelSide(s: WeatherStation, all: WeatherStation[]) {
 function pinHtml(s: WeatherStation, color: string, selected: boolean, side: "left" | "right") {
   const alert = !!s.active_alert;
   const r = selected ? 9 : 6, size = r * 2 + 10, c = size / 2;
-  const ring = selected ? "#26323B" : alert ? "#D9453A" : "transparent";
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'><circle cx='${c}' cy='${c}' r='${r + 3}' fill='none' stroke='${ring}' stroke-width='2'/><circle cx='${c}' cy='${c}' r='${r}' fill='${color}' stroke='#fff' stroke-width='2.5'/></svg>`;
-  const pulse = alert ? `<span class="absolute inset-0 rounded-full border-2 border-alert animate-pulse_ring"></span>` : "";
-  const pos = side === "right" ? `left:${size + 2}px` : `right:${size + 2}px;text-align:right`;
-  const chip = selected ? "bg-ink text-white border-ink" : "bg-white text-ink border-black/10";
-  const sub = selected ? "text-white/70" : "text-muted";
-  return `<div class="relative cursor-pointer transition-transform duration-200 hover:scale-110" style="width:${size}px;height:${size}px">${pulse}${svg}
-    <div class="absolute top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-[4px] border whitespace-nowrap leading-tight shadow-[0_1px_4px_rgba(0,0,0,.3)] ${chip}" style="${pos}">
-      <div class="text-[11px] font-semibold">${s.name}</div>
-      <div class="text-[9.5px] ${sub}">${s.terrain_type} · <span class="font-data">${s.consensus_blend} mm</span></div>
+  const ring = selected ? "var(--color-accent)" : alert ? "var(--color-error)" : "transparent";
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' aria-hidden='true'><circle cx='${c}' cy='${c}' r='${r + 3}' style='fill:none;stroke:${ring};stroke-width:2'/><circle cx='${c}' cy='${c}' r='${r}' style='fill:${color};stroke:var(--color-paper);stroke-width:2.5'/></svg>`;
+  const pulse = alert ? `<span class="absolute inset-0 rounded-full border-2 border-error animate-pulse_ring"></span>` : "";
+  const pos = side === "right" ? `left:${size + 4}px` : `right:${size + 4}px;text-align:right`;
+  const chip = selected ? "bg-graphite text-gink border-graphite" : "bg-paper text-ink border-rule";
+  const sub = selected ? "text-gmuted" : "text-muted";
+  return `<div class="relative cursor-pointer transition-transform duration-micro ease-out [@media(hover:hover)]:hover:scale-[1.06]" style="width:${size}px;height:${size}px">${pulse}${svg}
+    <div class="absolute top-1/2 -translate-y-1/2 px-2 py-1 rounded-input border whitespace-nowrap leading-tight shadow-card ${chip}" style="${pos}">
+      <div class="text-[12px] font-medium">${s.name}</div>
+      <div class="text-[11px] ${sub}"><span class="num">${s.consensus_blend} mm</span> in ${s.terrain_type}</div>
     </div></div>`;
 }
 
 function StationCard({ station }: { station: WeatherStation }) {
   const rows: [string, string][] = [
-    ["Observed 24h", `${station.observed_rain_24h} mm`],
+    ["Observed 24 h", `${station.observed_rain_24h} mm`],
     ["Blend", `${station.consensus_blend} mm`],
     ["90th percentile", `${station.worst_case_90th} mm`],
-    ["P(heavy ≥64.5)", `${Math.round(station.p_heavy_rain * 100)}%`],
+    ["Heavy rain chance", `${Math.round(station.p_heavy_rain * 100)}%`],
   ];
   return (
-    <div className="card shadow-hard w-[230px] p-3 font-sans text-ink">
-      <div className="flex items-baseline justify-between gap-2 pb-2 border-b border-dashed">
-        <span className="font-semibold text-[14px] truncate">{station.name}</span>
-        <span className="text-[11px] text-muted num">{station.elevation_m} m</span>
+    <div className="cut w-[232px] p-3 text-ink">
+      <div className="flex items-baseline justify-between gap-2 pb-2 border-b border-rule">
+        <span className="font-display font-semibold text-[15px] truncate">{station.name}</span>
+        <span className="text-[12px] text-muted num">{station.elevation_m} m</span>
       </div>
-      <div className="mt-2 space-y-0.5 text-xs">
+      <dl className="mt-2 space-y-1 text-[13px]">
         {rows.map(([label, v]) => (
-          <div key={label} className="flex justify-between">
-            <span className="text-muted">{label}</span>
-            <span className="num">{v}</span>
+          <div key={label} className="flex justify-between gap-3">
+            <dt className="text-muted">{label}</dt>
+            <dd className="num">{v}</dd>
           </div>
         ))}
-      </div>
-      {station.active_alert && <div className="mt-2 -mx-3 -mb-3 px-3 py-1.5 bg-alert text-white text-[11px] font-semibold uppercase tracking-wider">Active alert</div>}
+      </dl>
+      {station.active_alert && (
+        <div className="mt-2 pt-2 border-t border-rule flex items-center gap-1.5 text-[12px] font-medium text-error">
+          <TriangleAlert size={13} aria-hidden /> Active alert
+        </div>
+      )}
     </div>
   );
 }
@@ -119,16 +123,21 @@ function VectorMap({ basemap }: { basemap: string }) {
     fitted.current = true;
     const b = new maplibregl.LngLatBounds();
     stations.forEach((s) => b.extend([s.lng, s.lat]));
-    mapRef.current.fitBounds(b, { padding: { top: 90, bottom: 90, left: 100, right: 220 }, maxZoom: 12, duration: 1200 });
+    mapRef.current.fitBounds(b, { padding: { top: 90, bottom: 90, left: 100, right: 220 }, maxZoom: 12, duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1200 });
   }, [stations]);
 
   // Voronoi cells as a GeoJSON fill layer; colours come from feature properties.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !styleTick) return;
+    // A layer change while a new basemap is still loading would throw and unmount the app; retry once it settles.
+    if (!map.isStyleLoaded()) {
+      map.once("idle", () => setStyleTick((t) => t + 1));
+      return;
+    }
     const data: GeoJSON.FeatureCollection = {
       type: "FeatureCollection",
-      features: cells.map(({ station, feature }) => ({ ...feature, properties: { id: station.id, color: colorOf(station), sel: station.id === selectedStationId } })),
+      features: cells.map(({ station, feature }) => ({ ...feature, properties: { id: station.id, color: cssColor(colorOf(station)), sel: station.id === selectedStationId } })),
     };
     const src = map.getSource("cells") as maplibregl.GeoJSONSource | undefined;
     if (src) return void src.setData(data);
@@ -161,7 +170,7 @@ function VectorMap({ basemap }: { basemap: string }) {
     <div className="w-full h-full relative">
       <div ref={box} className="w-full h-full" />
       {hover && (
-        <div className="absolute z-[5] pointer-events-none animate-rise" style={{ left: hover.x - 115, top: hover.y - 150 }}>
+        <div className="absolute z-[5] pointer-events-none animate-pop origin-bottom" style={{ left: hover.x - 115, top: hover.y - 150 }}>
           <StationCard station={hover.s} />
         </div>
       )}
@@ -171,23 +180,10 @@ function VectorMap({ basemap }: { basemap: string }) {
 
 function LayerBar() {
   const { layerMode, setLayerMode } = useWeatherStore();
-  const refs = useRef<Partial<Record<LayerMode, HTMLButtonElement | null>>>({});
-  const [pill, setPill] = useState({ left: 0, width: 0 });
-  useLayoutEffect(() => {
-    const el = refs.current[layerMode];
-    if (el) setPill({ left: el.offsetLeft, width: el.offsetWidth });
-  }, [layerMode]);
   return (
-    <div className="absolute top-4 left-4 z-[10] card shadow-hard p-1 flex items-center gap-0.5">
-      <span className="px-2 text-muted"><Layers size={14} /></span>
-      <span className="absolute top-1 bottom-1 bg-ink rounded-[3px] transition-all duration-300 ease-[cubic-bezier(.2,.7,.2,1)]" style={pill} />
+    <div className="absolute top-4 left-4 z-[10] tray shadow-float" role="group" aria-label="Map layer">
       {(Object.keys(LAYERS) as LayerMode[]).map((id) => (
-        <button
-          key={id}
-          ref={(el) => { refs.current[id] = el; }}
-          onClick={() => setLayerMode(id)}
-          className={`relative px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[3px] transition-colors duration-300 ${layerMode === id ? "text-white" : "text-muted hover:text-ink"}`}
-        >
+        <button key={id} type="button" onClick={() => setLayerMode(id)} title={LAYERS[id].caption} aria-pressed={layerMode === id}>
           {LAYERS[id].label}
         </button>
       ))}
@@ -199,15 +195,19 @@ function Legend() {
   const mode = useWeatherStore((s) => s.layerMode);
   const layer = LAYERS[mode];
   return (
-    <div key={mode} className="absolute bottom-4 left-4 z-[10] card shadow-hard px-3 py-2.5 space-y-1 w-[230px]">
-      <div className="label !text-[9.5px]">{layer.label}</div>
-      <p className="text-[11px] leading-snug text-muted pb-1.5 mb-1 border-b border-line">{layer.caption}</p>
-      {layer.legend.map(({ color, label }, i) => (
-        <div key={label} className="flex items-center gap-2 text-[11px] text-ink2 animate-rise" style={{ animationDelay: `${i * 40}ms` }}>
-          <span className="w-3 h-3 rounded-[2px] border border-ink/20" style={{ background: color }} />
-          {label}
-        </div>
-      ))}
+    <div className="absolute bottom-4 left-4 z-[10] cut px-3 py-2.5">
+      <div className="flex items-center gap-1.5 mb-2">
+        <span className="font-display text-[13px] font-semibold text-ink">{layer.label}</span>
+        <span className="text-muted cursor-help" title={layer.caption} aria-label={layer.caption}><Info size={13} aria-hidden /></span>
+      </div>
+      <ul key={mode} className="grid grid-cols-[max-content_max-content] gap-x-4 gap-y-1 animate-fade">
+        {layer.legend.map(({ color, label }) => (
+          <li key={label} className="flex items-center gap-1.5 text-[12px] text-ink2">
+            <span className="w-2.5 h-2.5 rounded-[2px] flex-shrink-0" style={{ background: color }} aria-hidden />
+            <span className="whitespace-nowrap">{label}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -217,13 +217,9 @@ export default function MainMap() {
   return (
     <div className="absolute inset-0">
       <VectorMap basemap={basemap} />
-      <div className="absolute top-4 right-4 z-[10] card shadow-hard p-1 flex gap-0.5">
+      <div className="absolute top-4 right-4 z-[10] tray shadow-float" role="group" aria-label="Basemap">
         {Object.keys(BASEMAPS).map((k) => (
-          <button
-            key={k}
-            onClick={() => setBasemap(k)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-[3px] transition-colors duration-200 ${basemap === k ? "bg-ink text-white" : "text-muted hover:text-ink hover:bg-paper"}`}
-          >
+          <button key={k} type="button" onClick={() => setBasemap(k)} aria-pressed={basemap === k}>
             {BASEMAPS[k].label}
           </button>
         ))}

@@ -1,61 +1,85 @@
-import { ChevronUp, Trophy } from "lucide-react";
+import { ChevronUp } from "lucide-react";
 import { useWeatherStore } from "@/store/useWeatherStore";
 import type { VerificationRow } from "@/types/weather";
 
-const COLS: [string, (r: VerificationRow) => string][] = [
-  ["Day-1 RMSE", (r) => String(r.day1_rmse)],
-  ["Day-3 RMSE", (r) => String(r.day3_rmse)],
-  ["Heavy ETS", (r) => r.heavy_rain_ets.toFixed(2)],
-  ["Extreme CSI", (r) => r.extreme_rain_csi.toFixed(2)],
-  ["CRPS", (r) => String(r.crps_score)],
+// [header, value, format, lower is better]
+const COLS: [string, (r: VerificationRow) => number, (v: number) => string, boolean][] = [
+  ["Day-1 RMSE", (r) => r.day1_rmse, String, true],
+  ["Day-3 RMSE", (r) => r.day3_rmse, String, true],
+  ["Heavy ETS", (r) => r.heavy_rain_ets, (v) => v.toFixed(2), false],
+  ["Extreme CSI", (r) => r.extreme_rain_csi, (v) => v.toFixed(2), false],
+  ["CRPS", (r) => r.crps_score, String, true],
 ];
+
+const OURS = "AtmosFusion Blend";
 
 export default function ScorecardTray() {
   const { scorecard, scorecardOpen, toggleScorecard } = useWeatherStore();
+  const best = COLS.map(([, get, , low]) => {
+    const vals = scorecard.map(get);
+    return vals.length ? (low ? Math.min(...vals) : Math.max(...vals)) : NaN;
+  });
 
   return (
-    <div className="flex-shrink-0 border-t border-line bg-surface">
-      <button onClick={toggleScorecard} className="group w-full px-5 py-2.5 flex items-center justify-between text-xs hover:bg-paper transition-colors">
-        <span className="flex items-center gap-2.5">
-          <Trophy size={14} className="text-accent" />
-          <span className="label !text-ink">Verification scorecard</span>
-          <span className="text-muted">2022 held-out benchmark</span>
+    <div className="card flex-shrink-0">
+      <button
+        type="button"
+        onClick={toggleScorecard}
+        aria-expanded={scorecardOpen}
+        aria-controls="scorecard"
+        className="group w-full px-4 py-2.5 flex items-center justify-between gap-4 bg-paper2 hover:bg-paper3 transition-colors duration-micro"
+      >
+        <span className="flex items-baseline gap-3 min-w-0 whitespace-nowrap">
+          <span className="font-display text-[15px] font-semibold text-heading whitespace-nowrap">Verification scorecard</span>
+          <span className="text-[13px] text-label truncate hidden sm:inline">2022 held-out benchmark</span>
         </span>
-        <span className="flex items-center gap-1.5 text-muted group-hover:text-ink">
+        <span className="flex items-center gap-1.5 text-[13px] text-muted group-hover:text-ink">
           {scorecardOpen ? "Hide" : "Show"}
-          <ChevronUp size={14} className={`transition-transform duration-300 ${scorecardOpen ? "" : "rotate-180"}`} />
+          <ChevronUp size={15} aria-hidden className={`transition-transform duration-short ease-out ${scorecardOpen ? "" : "rotate-180"}`} />
         </span>
       </button>
-      {/* grid-rows 0fr→1fr gives a height transition without measuring */}
-      <div className={`grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(.2,.7,.2,1)] ${scorecardOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+      {/* grid-rows 0fr to 1fr gives a height transition without measuring (the documented exception for disclosure) */}
+      <div id="scorecard" className={`grid transition-[grid-template-rows] duration-short ease-out ${scorecardOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
         <div className="overflow-hidden">
-          <div className="px-5 pb-4 overflow-x-auto">
-            <table className="w-full text-xs border-collapse">
+          <div className="pb-3 overflow-x-auto">
+            <table className="rtable inset">
               <thead>
-                <tr className="text-muted">
-                  <th className="text-left font-medium py-2 label">System</th>
-                  <th className="text-left font-medium label">Type</th>
-                  {COLS.map(([h]) => <th key={h} className="text-right font-medium label">{h}</th>)}
+                <tr>
+                  <th scope="col">System</th>
+                  <th scope="col">Type</th>
+                  {COLS.map(([h, , , low]) => (
+                    <th key={h} scope="col" style={{ textAlign: "right" }}>
+                      {h} <span className="sr-only">{low ? "(lower is better)" : "(higher is better)"}</span><span aria-hidden>{low ? "↓" : "↑"}</span>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {scorecard.map((r, i) => {
-                  const ours = r.model_name === "AtmosFusion Blend";
+                {scorecard.map((r) => {
+                  const ours = r.model_name === OURS;
                   return (
-                    <tr
-                      key={r.model_name}
-                      className={`border-t transition-colors ${ours ? "bg-blend/15 text-blend font-semibold" : "hover:bg-paper"} ${scorecardOpen ? "animate-rise" : ""}`}
-                      style={{ animationDelay: `${i * 50}ms` }}
-                    >
-                      <td className="py-2 pl-2">{ours && <span className="text-accent mr-1.5">◆</span>}{r.model_name}</td>
-                      <td className={ours ? "text-blend/70" : "text-muted"}>{r.model_type}</td>
-                      {COLS.map(([h, f]) => <td key={h} className="text-right num pr-2">{f(r)}</td>)}
+                    <tr key={r.model_name} className={ours ? "bg-wash" : "hover:bg-paper2 transition-colors duration-micro"}>
+                      <th scope="row" className={ours ? "text-accent font-semibold" : "text-ink"}>
+                        {r.model_name}
+                      </th>
+                      <td className={ours ? "text-accent" : "text-label"}>{r.model_type}</td>
+                      {COLS.map(([h, get, fmt], i) => {
+                        const v = get(r);
+                        const isBest = v === best[i];
+                        return (
+                          <td key={h} className={`text-right num ${isBest ? "text-success font-semibold" : ours ? "text-figure font-semibold" : "text-figure"}`}>
+                            {fmt(v)}
+                          </td>
+                        );
+                      })}
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-            <p className="text-[11px] text-faint mt-3">Lower RMSE and CRPS are better; higher ETS and CSI are better.</p>
+            <p className="text-[12px] text-label mt-2.5 px-4">
+              The best score in each column is in <span className="text-success font-semibold">green</span>. Arrows show the better direction.
+            </p>
           </div>
         </div>
       </div>
