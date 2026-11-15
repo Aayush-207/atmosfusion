@@ -3,7 +3,7 @@ import { Info, TriangleAlert } from "lucide-react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useWeatherStore } from "@/store/useWeatherStore";
-import { LAYERS, cssColor, type WeatherStation, type LayerMode } from "@/types/weather";
+import { LAYERS, MODEL_LABELS, MODEL_COLORS, cssColor, type WeatherStation, type LayerMode } from "@/types/weather";
 
 const CENTER = { lat: 18.5204, lng: 73.8567 };
 
@@ -46,31 +46,94 @@ function pinHtml(s: WeatherStation, color: string, selected: boolean, side: "lef
     </div></div>`;
 }
 
-function StationCard({ station }: { station: WeatherStation }) {
-  const rows: [string, string][] = [
-    ["Observed 24 h", `${station.observed_rain_24h} mm`],
-    ["Blend", `${station.consensus_blend} mm`],
-    ["90th percentile", `${station.worst_case_90th} mm`],
-    ["Heavy rain chance", `${Math.round(station.p_heavy_rain * 100)}%`],
+// IMD 24 h rainfall categories, for the hover card's headline pill
+const CATEGORY: [number, string, string][] = [
+  [204.5, "Extremely heavy", "var(--rain-6)"],
+  [115.6, "Very heavy", "var(--rain-5)"],
+  [64.5, "Heavy", "var(--rain-4)"],
+  [35.5, "Moderately heavy", "var(--rain-3)"],
+  [7.5, "Moderate", "var(--rain-2)"],
+  [0, "Light", "var(--rain-1)"],
+];
+const categoryOf = (mm: number) => CATEGORY.find(([t]) => mm >= t)!;
+
+// The hover card, a small chart of the gauge: its IMD category, the blend set beside a ring for the heavy-rain
+// chance, observed, blend and 90th percentile compared on one scale, and the model that leads its blend.
+function StationCard({ station, below = false }: { station: WeatherStation; below?: boolean }) {
+  const [, cat, catColor] = categoryOf(station.consensus_blend);
+  const heavy = Math.round(station.p_heavy_rain * 100);
+  const bars: [string, number, string][] = [
+    ["Observed", station.observed_rain_24h, "var(--data-observed)"],
+    ["Blend", station.consensus_blend, "var(--data-forecast)"],
+    ["90th pct", station.worst_case_90th, "var(--data-upper)"],
   ];
+  const top = Math.max(...bars.map(([, v]) => v), 1);
+  const [leadKey, leadW] = Object.entries(station.assigned_weights).sort(([, a], [, b]) => b - a)[0] ?? ["", 0];
+  const ringTone = heavy >= 60 ? "var(--level-high)" : heavy >= 25 ? "var(--level-mid)" : "var(--level-low)";
+
   return (
-    <div className="cut w-[232px] p-3 text-ink">
-      <div className="flex items-baseline justify-between gap-2 pb-2 border-b border-rule">
-        <span className="font-display font-semibold text-[15px] truncate">{station.name}</span>
-        <span className="text-[12px] text-muted num">{station.elevation_m} m</span>
+    <div className="relative w-[300px] rounded-[14px] bg-paper text-ink shadow-float ring-1 ring-rule">
+      <div className="px-4 pt-3.5 pb-3 flex items-start justify-between gap-3 border-b border-rule">
+        <div className="min-w-0">
+          <div className="font-display text-[15px] font-semibold leading-snug text-heading">{station.name}</div>
+          <div className="text-[12px] text-label leading-snug mt-0.5">{station.terrain_type}, <span className="num">{station.elevation_m} m</span></div>
+        </div>
+        <span className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-full px-2 py-[3px] text-[11px] font-medium text-ink2"
+          style={{ background: `color-mix(in oklab, ${catColor} 16%, var(--color-paper))` }}>
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: catColor }} aria-hidden />
+          {cat}
+        </span>
       </div>
-      <dl className="mt-2 space-y-1 text-[13px]">
-        {rows.map(([label, v]) => (
-          <div key={label} className="flex justify-between gap-3">
-            <dt className="text-muted">{label}</dt>
-            <dd className="num">{v}</dd>
+
+      <div className="px-4 pt-3 flex items-center justify-between gap-3">
+        <div>
+          <div className="text-[11px] font-medium text-label">Blend, next 24 h</div>
+          <div className="font-display text-[28px] font-semibold leading-none mt-1 num c-forecast">
+            {station.consensus_blend}<span className="text-[13px] font-medium text-label"> mm</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <svg viewBox="0 0 36 36" className="w-11 h-11 -rotate-90" aria-hidden>
+            <circle cx="18" cy="18" r="15" fill="none" strokeWidth="4" style={{ stroke: "var(--color-paper-3)" }} />
+            <circle cx="18" cy="18" r="15" fill="none" strokeWidth="4" pathLength={100} strokeLinecap="round"
+              style={{ stroke: ringTone, strokeDasharray: `${Math.max(heavy, 0.5)} 100` }} />
+          </svg>
+          <div className="leading-tight">
+            <div className="num text-[15px] font-semibold text-heading">{heavy}%</div>
+            <div className="text-[11px] text-label">heavy rain</div>
+          </div>
+        </div>
+      </div>
+
+      <dl className="px-4 pt-3 pb-3.5 space-y-1.5">
+        {bars.map(([label, v, color]) => (
+          <div key={label} className="grid grid-cols-[60px_1fr_56px] items-center gap-2 text-[12px]">
+            <dt className="text-label">{label}</dt>
+            <dd className="meter !h-1.5"><span style={{ transform: `scaleX(${v / top})`, background: color }} /></dd>
+            <dd className="num text-right font-medium text-ink">{v} mm</dd>
           </div>
         ))}
       </dl>
-      {station.active_alert && (
-        <div className="mt-2 pt-2 border-t border-rule flex items-center gap-1.5 text-[12px] font-medium text-error">
-          <TriangleAlert size={13} aria-hidden /> Active alert
+
+      {leadKey && (
+        <div className={`px-4 py-2.5 border-t border-rule flex items-center gap-2 text-[12px] ${station.active_alert ? "" : "rounded-b-[14px]"} bg-paper2`}>
+          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: MODEL_COLORS[leadKey] }} aria-hidden />
+          <span className="text-label">Led by</span>
+          <span className="font-medium text-ink truncate">{MODEL_LABELS[leadKey] ?? leadKey}</span>
+          <span className="num ml-auto font-semibold text-heading">{Math.round(leadW * 100)}%</span>
         </div>
+      )}
+
+      {station.active_alert && (
+        <div className="px-4 py-2 rounded-b-[14px] bg-error-wash flex items-center gap-1.5 text-[12px] font-semibold text-error">
+          <TriangleAlert size={13} aria-hidden /> Active alert at this gauge
+        </div>
+      )}
+
+      {below ? (
+        <span aria-hidden className="absolute left-1/2 -top-[6px] w-3 h-3 -translate-x-1/2 rotate-45 ring-1 ring-rule bg-paper [clip-path:polygon(0_0,100%_0,0_100%)]" />
+      ) : (
+        <span aria-hidden className={`absolute left-1/2 -bottom-[6px] w-3 h-3 -translate-x-1/2 rotate-45 ring-1 ring-rule [clip-path:polygon(100%_0,100%_100%,0_100%)] ${station.active_alert ? "bg-error-wash" : "bg-paper2"}`} />
       )}
     </div>
   );
@@ -170,8 +233,13 @@ function VectorMap({ basemap }: { basemap: string }) {
     <div className="w-full h-full relative">
       <div ref={box} className="w-full h-full" />
       {hover && (
-        <div className="absolute z-[5] pointer-events-none animate-pop origin-bottom" style={{ left: hover.x - 115, top: hover.y - 150 }}>
-          <StationCard station={hover.s} />
+        // Above the gauge; near the top edge there is no room, so it opens below instead
+        <div className="absolute z-[30] pointer-events-none" style={hover.y < 320
+          ? { left: hover.x, top: hover.y + 18, transform: "translate(-50%, 0)" }
+          : { left: hover.x, top: hover.y - 18, transform: "translate(-50%, -100%)" }}>
+          <div className={`animate-pop ${hover.y < 320 ? "origin-top" : "origin-bottom"}`}>
+            <StationCard station={hover.s} below={hover.y < 320} />
+          </div>
         </div>
       )}
     </div>
@@ -195,7 +263,7 @@ function Legend() {
   const mode = useWeatherStore((s) => s.layerMode);
   const layer = LAYERS[mode];
   return (
-    <div className="absolute bottom-4 left-4 z-[10] cut px-3 py-2.5">
+    <div className="absolute bottom-[68px] left-4 z-[10] cut px-3 py-2.5">
       <div className="flex items-center gap-1.5 mb-2">
         <span className="font-display text-[13px] font-semibold text-ink">{layer.label}</span>
         <span className="text-muted cursor-help" title={layer.caption} aria-label={layer.caption}><Info size={13} aria-hidden /></span>

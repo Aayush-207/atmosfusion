@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { TriangleAlert, CloudRain, Umbrella, CalendarDays, ListOrdered } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useWeatherStore } from "@/store/useWeatherStore";
+import ScrollArea from "@/components/layout/ScrollArea";
 import { API, LAYERS, type LayerMode, type QuantilePoint, type WeatherStation } from "@/types/weather";
 
 const maxWeight = (s: WeatherStation) => Math.max(...Object.values(s.assigned_weights));
@@ -24,7 +25,7 @@ const PROBS: [keyof WeatherStation, string][] = [
 function Stat({ label, value, tone = "" }: { label: string; value: number; tone?: string }) {
   return (
     <div>
-      <dt className="text-[12px] text-label whitespace-nowrap">{label}</dt>
+      <dt className="text-[12px] font-medium text-label whitespace-nowrap">{label}</dt>
       <dd className={`figure text-[26px] leading-none mt-1.5 ${tone}`}>
         {value}<span className="text-[13px] font-medium text-label"> mm</span>
       </dd>
@@ -66,14 +67,14 @@ function Outlook({ id }: { id: string }) {
         ))}
         <line x1={L} x2={W - R} y1={y(HEAVY)} y2={y(HEAVY)} style={{ stroke: "var(--color-error)" }} strokeWidth={1} strokeDasharray="3 3" />
         <text x={W - R} y={y(HEAVY) - 4} textAnchor="end" style={{ ...tick, fill: "var(--color-error)" }}>IMD heavy, 64.5</text>
-        <path d={band} style={{ fill: "var(--color-accent-wash)" }} />
-        <path d={path("simple_avg")} fill="none" style={{ stroke: "var(--color-muted)" }} strokeWidth={1.25} strokeDasharray="4 3" />
-        <path key={id} d={path("p50")} fill="none" className="animate-draw" style={{ stroke: "var(--color-accent)" }} strokeWidth={2.25} strokeLinejoin="round" pathLength={1} strokeDasharray={1} />
-        {data.map((d) => <circle key={d.lead_day} cx={x(d.lead_day)} cy={y(d.p50)} r={2.25} style={{ fill: "var(--color-paper)", stroke: "var(--color-accent)" }} strokeWidth={1.5} />)}
+        <path d={band} style={{ fill: "color-mix(in oklab, var(--data-forecast) 13%, var(--color-paper))" }} />
+        <path d={path("simple_avg")} fill="none" style={{ stroke: "var(--data-average)" }} strokeWidth={1.25} strokeDasharray="4 3" />
+        <path key={id} d={path("p50")} fill="none" className="animate-draw" style={{ stroke: "var(--data-forecast)" }} strokeWidth={2.25} strokeLinejoin="round" pathLength={1} strokeDasharray={1} />
+        {data.map((d) => <circle key={d.lead_day} cx={x(d.lead_day)} cy={y(d.p50)} r={2.25} style={{ fill: "var(--color-paper)", stroke: "var(--data-forecast)" }} strokeWidth={1.5} />)}
       </svg>
       <figcaption className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[12px] text-muted">
-        <Key swatch={<span className="w-3.5 h-[2px] bg-accent" />}>Blend median</Key>
-        <Key swatch={<span className="w-3.5 h-2 bg-wash" />}>10 to 90% range</Key>
+        <Key swatch={<span className="w-3.5 h-[2px]" style={{ background: "var(--data-forecast)" }} />}>Blend median</Key>
+        <Key swatch={<span className="w-3.5 h-2" style={{ background: "color-mix(in oklab, var(--data-forecast) 13%, var(--color-paper))" }} />}>10 to 90% range</Key>
         <Key swatch={<span className="w-3.5 border-t border-dashed border-muted" />}>Simple average</Key>
       </figcaption>
     </figure>
@@ -98,8 +99,8 @@ export default function AnalyticsDrawer() {
   return (
     <aside className="w-[350px] flex-shrink-0 border-l border-rule bg-paper2 flex flex-col min-h-0">
       {station?.active_alert && (
-        <div key={`alert-${station.id}`} role="alert" className="m-4 mb-0 animate-fade rounded-card border border-rule2 px-3.5 py-3 bg-error-wash shadow-card">
-          <div className="flex items-center gap-1.5 text-error text-[13px] font-medium">
+        <div key={`alert-${station.id}`} role="alert" className="m-4 mb-0 animate-fade rounded-card px-3.5 py-3 bg-error-wash">
+          <div className="flex items-center gap-1.5 text-error text-[13px] font-semibold font-display">
             <TriangleAlert size={14} strokeWidth={2.2} aria-hidden />
             Active alert
           </div>
@@ -115,28 +116,29 @@ export default function AnalyticsDrawer() {
         ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto" role="tabpanel">
+      <ScrollArea>
+      <div role="tabpanel" className="pb-14">
         {tab === "forecast" && station && (
           <div className="p-4 space-y-4 animate-fade">
-            <section className="card">
+            <section className="card tone-teal">
               <div className="card-head"><h2><CloudRain size={14} aria-hidden />Day-1 forecast</h2><span className="aside">mm in 24 h</span></div>
               <dl className="tiles grid-cols-2">
-                <Stat label="Blend" value={station.consensus_blend} tone="!text-accent" />
-                <Stat label="90th percentile" value={station.worst_case_90th} />
-                <Stat label="Model spread" value={station.disagreement_index} />
-                <Stat label="Observed" value={station.observed_rain_24h} />
+                <Stat label="Blend" value={station.consensus_blend} tone="c-forecast" />
+                <Stat label="90th percentile" value={station.worst_case_90th} tone="c-upper" />
+                <Stat label="Model spread" value={station.disagreement_index} tone="c-spread" />
+                <Stat label="Observed" value={station.observed_rain_24h} tone="c-observed" />
               </dl>
             </section>
 
-            <section className="card">
-              <div className="card-head"><h2><Umbrella size={14} aria-hidden />Chance of heavy rain</h2><span className="aside">IMD thresholds, mm</span></div>
+            <section className="card tone-coral">
+              <div className="card-head"><h2><Umbrella size={14} aria-hidden />Chance of heavy rain</h2><span className="aside">IMD, mm</span></div>
               <dl className="card-body space-y-2.5">
                 {PROBS.map(([k, label]) => {
                   const p = Math.round((station[k] as number) * 100);
                   const tone = p >= 60 ? "var(--level-high)" : p >= 25 ? "var(--level-mid)" : "var(--level-low)";
                   return (
                     <div key={k} className="grid grid-cols-[124px_1fr_40px] items-center gap-3 text-[13px]">
-                      <dt className="text-ink2 whitespace-nowrap">{label}</dt>
+                      <dt className="text-ink2 font-medium whitespace-nowrap">{label}</dt>
                       <dd className="meter"><span style={{ transform: `scaleX(${p / 100})`, background: tone }} /></dd>
                       <dd className="figure text-right text-[14px]">{p}%</dd>
                     </div>
@@ -145,7 +147,7 @@ export default function AnalyticsDrawer() {
               </dl>
             </section>
 
-            <section className="card">
+            <section className="card tone-sky">
               <div className="card-head"><h2><CalendarDays size={14} aria-hidden />10-day outlook</h2><span className="aside">mm per day</span></div>
               <div className="card-body"><Outlook id={station.id} /></div>
             </section>
@@ -153,7 +155,7 @@ export default function AnalyticsDrawer() {
         )}
 
         {tab === "stations" && (
-          <section className="card m-4 animate-fade">
+          <section className="card tone-emerald m-4 animate-fade">
             <div className="card-head"><h2><ListOrdered size={14} aria-hidden />Ranked by {layer.label.toLowerCase()}</h2></div>
             <ol>
               {stations.map((s, i) => {
@@ -164,13 +166,13 @@ export default function AnalyticsDrawer() {
                       type="button"
                       onClick={() => selectStation(s.id)}
                       aria-current={sel || undefined}
-                      className={`w-full text-left px-4 py-2.5 border-b border-rule transition-colors duration-micro ${sel ? "bg-wash shadow-[inset_3px_0_0_var(--color-accent)]" : "hover:bg-paper2"}`}
+                      className={`w-full text-left px-4 py-2.5 border-b border-rule transition-colors duration-micro ${sel ? "bg-paper2" : "hover:bg-paper2"}`}
                     >
                       <span className="flex items-center gap-3">
-                        <span className="grid place-items-center w-5 h-5 rounded-input bg-paper3 num text-[11px] font-medium text-figure">{i + 1}</span>
+                        <span className={`grid place-items-center w-5 h-5 rounded-full num text-[11px] font-semibold ${sel ? "bg-ink text-paper" : "bg-paper3 text-ink2"}`}>{i + 1}</span>
                         <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: layer.color(s) }} aria-hidden />
                         <span className="flex-1 min-w-0">
-                          <span className={`block text-[14px] truncate ${sel ? "font-medium text-heading" : "text-ink"}`}>{s.name}</span>
+                          <span className={`block text-[14px] truncate ${sel ? "font-semibold text-heading" : "font-medium text-ink"}`}>{s.name}</span>
                           {rank.sub && <span className="block text-[12px] truncate text-label">{rank.sub(s)}</span>}
                         </span>
                         {s.active_alert && <TriangleAlert size={13} className="text-error flex-shrink-0" aria-label="Active alert" />}
@@ -187,6 +189,7 @@ export default function AnalyticsDrawer() {
           </section>
         )}
       </div>
+      </ScrollArea>
     </aside>
   );
 }

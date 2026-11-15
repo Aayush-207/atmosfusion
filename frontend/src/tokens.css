@@ -61,3 +61,31 @@
   --color-graphite-ink: oklch(97% 0.012 255); --color-graphite-muted: oklch(78% 0.05 257);
   --color-key-face: var(--color-paper); --color-key-edge: var(--blue-200);
 }
+/* Multi-colour on white: Manrope throughout; a near-neutral ground so each card's own hue carries it.
+   Headings in deep ink; each card names its hue (see .tone-* in index.css). */
+:root {
+  --font-display: "Manrope", system-ui, sans-serif; --font-body: "Manrope", system-ui, sans-serif;
+  --tracking-display: -0.018em;
+  --color-paper: oklch(100% 0 0); --color-paper-2: oklch(97.3% 0.004 250); --color-paper-3: oklch(94.5% 0.006 250);
+  --color-ink: oklch(22% 0.02 262); --color-ink-2: oklch(37% 0.02 262); --color-muted: oklch(49% 0.02 262); --color-label: oklch(48% 0.025 262);
+  --color-rule: oklch(92.5% 0.005 250); --color-rule-2: oklch(87.5% 0.008 250);
+  --color-heading: oklch(21% 0.045 265);
+}
+/* Model colours: six distinct hues at matched, muted chroma so the chart stays calm on white.
+   Physics models: blue, green, amber, coral. AI models: teal, rose. Used by the donut, the table and the map. */
+:root {
+  --model-ecmwf: oklch(56% 0.14 255); --model-wrf: oklch(62% 0.12 150); --model-gfs: oklch(74% 0.13 78); --model-ncum: oklch(65% 0.14 35);
+  --model-graphcast: oklch(60% 0.1 200); --model-aifs: oklch(68% 0.12 355);
+}
+/* Two faces by place: Inter for interface text, tables and labels; Manrope for headings, the wordmark and key figures. */
+:root {
+  --font-body: "Inter", system-ui, sans-serif; --font-display: "Manrope", system-ui, sans-serif;
+  --tracking-display: -0.02em;
+}
+/* Data colours: one meaning each, used the same way everywhere (cards carry no theme colour of their own).
+   Mid-tones, never dark: forecast blue, observed teal, upper bound amber, spread slate, average grey. */
+:root {
+  --data-forecast: oklch(56% 0.15 255); --data-observed: oklch(57% 0.1 188); --data-upper: oklch(60% 0.15 55);
+  --data-spread: oklch(55% 0.05 265); --data-average: oklch(64% 0.01 260);
+}
+:root { --data-observed: oklch(53% 0.1 188); --data-upper: oklch(56% 0.15 55); }

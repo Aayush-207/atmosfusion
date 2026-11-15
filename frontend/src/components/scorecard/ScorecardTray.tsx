@@ -21,17 +21,17 @@ export default function ScorecardTray() {
   });
 
   return (
-    <div className="card flex-shrink-0">
+    <div className="card tone-crimson shadow-float">
       <button
         type="button"
         onClick={toggleScorecard}
         aria-expanded={scorecardOpen}
         aria-controls="scorecard"
-        className="group w-full px-4 py-2.5 flex items-center justify-between gap-4 bg-paper2 hover:bg-paper3 transition-colors duration-micro"
+        className="group w-full px-4 py-2.5 flex items-center justify-between gap-4 bg-paper hover:bg-paper2 transition-colors duration-micro"
       >
         <span className="flex items-baseline gap-3 min-w-0 whitespace-nowrap">
           <span className="font-display text-[15px] font-semibold text-heading whitespace-nowrap">Verification scorecard</span>
-          <span className="text-[13px] text-label truncate hidden sm:inline">2022 held-out benchmark</span>
+          <span className="text-[12px] font-medium text-label truncate hidden sm:inline">2022 held-out benchmark</span>
         </span>
         <span className="flex items-center gap-1.5 text-[13px] text-muted group-hover:text-ink">
           {scorecardOpen ? "Hide" : "Show"}
@@ -58,16 +58,16 @@ export default function ScorecardTray() {
                 {scorecard.map((r) => {
                   const ours = r.model_name === OURS;
                   return (
-                    <tr key={r.model_name} className={ours ? "bg-wash" : "hover:bg-paper2 transition-colors duration-micro"}>
-                      <th scope="row" className={ours ? "text-accent font-semibold" : "text-ink"}>
+                    <tr key={r.model_name} className={ours ? "bg-paper2" : "hover:bg-paper2 transition-colors duration-micro"}>
+                      <th scope="row" className={ours ? "c-forecast font-semibold" : "font-medium text-heading"}>
                         {r.model_name}
                       </th>
-                      <td className={ours ? "text-accent" : "text-label"}>{r.model_type}</td>
+                      <td className={ours ? "c-forecast font-medium" : "text-label"}>{r.model_type}</td>
                       {COLS.map(([h, get, fmt], i) => {
                         const v = get(r);
                         const isBest = v === best[i];
                         return (
-                          <td key={h} className={`text-right num ${isBest ? "text-success font-semibold" : ours ? "text-figure font-semibold" : "text-figure"}`}>
+                          <td key={h} className={`text-right num ${isBest ? "text-success font-semibold" : ours ? "text-heading font-semibold" : "text-ink2"}`}>
                             {fmt(v)}
                           </td>
                         );

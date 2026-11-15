@@ -2,11 +2,13 @@
  * nav: kept top bar, wordmark left, region and regime, alerts as text right · signature: the blend ledger, the gauge's blended rainfall large on graphite over the simple average and the miss against the gauge · states: loading (outlook skeleton, app loading screen), error (offline screen), full
  * axes: light/grotesk-sans/cool · posture: restrained · contrast: pass · v2.0.0 */
 /* Hallmark · pre-emit critique: P4 H5 E4 S4 R5 V4 · weakest: P, a calm console is a familiar argument; made the blend ledger the one dark object so the screen argues that the blend, not the map, is the answer */
-@import "@fontsource/ibm-plex-sans/400.css";
-@import "@fontsource/ibm-plex-sans/500.css";
-@import "@fontsource/ibm-plex-sans/600.css";
-@import "@fontsource/familjen-grotesk/500.css";
-@import "@fontsource/familjen-grotesk/600.css";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/manrope/600.css";
+@import "@fontsource/manrope/700.css";
+@import "@fontsource/manrope/800.css";
 @import "./tokens.css";
 @import "./base.css" layer(base);
 
@@ -27,7 +29,7 @@
   /* Shades by role: headings the darkest cobalt, figures a deep cobalt, labels a blue-grey tint */
   h1, h2, h3 { color: var(--color-heading); }
   .num { font-variant-numeric: tabular-nums; }
-  .figure { font-family: var(--font-display); font-weight: 600; letter-spacing: var(--tracking-display); font-variant-numeric: tabular-nums; color: var(--color-figure); }
+  .figure { font-family: var(--font-display); font-weight: 600; color: var(--color-heading); letter-spacing: var(--tracking-display); font-variant-numeric: tabular-nums; }
 
   /* Panel heads: the display face, a step up from body, sentence case, a hairline under the row */
   .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-sm); padding-bottom: var(--space-xs); margin-bottom: var(--space-sm); border-bottom: 1px solid var(--color-rule); }
@@ -36,11 +38,27 @@
 
   /* Cards: white boxes on the pale blue ground, a tinted head strip, one soft shadow. Never nested. */
   .card { background: var(--color-paper); border: 1px solid var(--color-rule-2); border-radius: var(--radius-card); box-shadow: var(--shadow-card); overflow: hidden; }
-  .card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); padding: var(--space-xs) var(--space-md); min-height: 40px; background: var(--color-paper-2); border-bottom: 1px solid var(--color-rule); }
-  .card-head h2 { font-size: var(--text-sm); font-weight: 600; max-width: none; display: flex; align-items: center; gap: var(--space-xs); }
-  .card-head h2 svg { color: var(--color-accent); }
-  .card-head .aside { font-size: var(--text-xs); color: var(--color-label); white-space: nowrap; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); padding: 10px var(--space-md); min-height: 48px; background: var(--color-paper); border-bottom: 1px solid var(--color-rule); }
+  .card-head h2 { font: 600 15px/1.2 var(--font-display); letter-spacing: -0.01em; color: var(--color-heading); white-space: nowrap; max-width: none; display: flex; align-items: center; gap: 10px; }
+  .card-head h2 svg { box-sizing: content-box; padding: 6px; border-radius: 8px; color: var(--color-ink-2); background: var(--color-paper-2); flex: none; }
+  .card-head .aside { font-size: 12px; font-weight: 500; color: var(--color-label); white-space: nowrap; }
   .card-body { padding: var(--space-md); }
+
+  /* Card hues: each card names a hue and chroma; its header wash, title, sub-headers and figures derive from it.
+     Headers take the strong shade, sub-headers (notes, table heads) a quieter shade of the same hue. */
+  .tone-blue { --h: 262; --c: 0.19; } .tone-amber { --h: 68; --c: 0.13; } .tone-teal { --h: 195; --c: 0.1; }
+  .tone-coral { --h: 35; --c: 0.17; } .tone-sky { --h: 238; --c: 0.14; } .tone-emerald { --h: 160; --c: 0.12; }
+  .tone-crimson { --h: 12; --c: 0.17; }
+  [class*="tone-"] {
+    --tone: oklch(45% var(--c) var(--h)); --tone-sub: oklch(46% calc(var(--c) * 0.45) var(--h));
+    --tone-wash: oklch(97.4% calc(var(--c) * 0.12) var(--h)); --tone-rule: oklch(90% calc(var(--c) * 0.3) var(--h));
+    --tone-tile: oklch(95% calc(var(--c) * 0.25) var(--h));
+  }
+  .tone-title, .tone-text { color: var(--tone); }
+
+  /* Data colours by meaning */
+  .c-forecast { color: var(--data-forecast); } .c-observed { color: var(--data-observed); } .c-upper { color: var(--data-upper); }
+  .c-spread { color: var(--data-spread); } .c-average { color: var(--data-average); }
 
   /* Tiles: divided cells inside a card (a grid of figures), never boxes of their own */
   .tiles { display: grid; gap: 1px; background: var(--color-rule); }
@@ -70,7 +88,7 @@
   }
   .tray > button:hover { color: var(--color-ink); }
   .tray > button:active { transform: translateY(1px); }
-  .tray > button[aria-pressed="true"], .tray > button[aria-selected="true"] { background: var(--color-key-face); color: var(--color-accent); box-shadow: var(--shadow-tray-key); }
+  .tray > button[aria-pressed="true"], .tray > button[aria-selected="true"] { background: var(--color-ink); color: var(--color-paper); box-shadow: 0 1px 2px oklch(20% 0.02 262 / 0.25); }
 
   /* A surface on the map: hairline and one soft shadow, cut on two corners where supported */
   .cut { background: var(--color-paper); border: 1px solid var(--color-rule); border-radius: var(--radius-card); box-shadow: var(--shadow-panel); }
@@ -81,7 +99,7 @@
 
   /* Ruled tables: horizontal rules only, sentence-case heads in the display face */
   .rtable { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
-  .rtable thead th { font: 500 var(--text-xs)/1.3 var(--font-display); color: var(--color-label); background: var(--color-paper-2); text-align: left; white-space: nowrap; padding: var(--space-xs) var(--space-sm); border-bottom: 1px solid var(--color-rule-2); }
+  .rtable thead th { font: 600 12px/1.3 var(--font-body); color: var(--color-label); background: var(--color-paper-2); text-align: left; white-space: nowrap; padding: var(--space-xs) var(--space-sm); border-bottom: 1px solid var(--color-rule-2); }
   .rtable tbody th, .rtable td { padding: var(--space-xs) var(--space-sm); border-bottom: 1px solid var(--color-rule); text-align: left; font-weight: 400; }
   .rtable :is(th, td):first-child { padding-left: 0; }
   .rtable :is(th, td):last-child { padding-right: 0; }
@@ -92,6 +110,13 @@
   .meter { display: block; height: 4px; border-radius: var(--radius-pill); background: var(--color-paper-3); overflow: hidden; }
   .meter > span { display: block; height: 100%; width: 100%; border-radius: inherit; transform-origin: left; transition: transform var(--dur-short) var(--ease-out); }
 }
+
+/* Scrollbars hidden in the side panels; a down arrow (ScrollArea) says when there is more */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* The scorecard floats over the map's foot: lift the map's own corner controls clear of it */
+.maplibregl-ctrl-bottom-right, .maplibregl-ctrl-bottom-left { bottom: 64px; }
 
 /* Reduced motion: base.css settles every transition; the looping pulse and the line draw stop outright */
 @media (prefers-reduced-motion: reduce) {

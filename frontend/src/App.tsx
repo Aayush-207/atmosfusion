@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useWeatherStore } from "./store/useWeatherStore";
 import Layout from "./components/layout/Layout";
 import { API } from "./types/weather";
-import ProductDemo from "./components/demo/ProductDemo";
 
 export default function App() {
   const { setForecast, selectStation, selectedStationId } = useWeatherStore();
@@ -40,12 +39,8 @@ export default function App() {
 
   if (isLoading || error) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-6 px-4 overflow-y-auto">
-        {/* While the API is down or warming up, show what the app does instead of a bare card */}
-        <div className="w-full max-w-[720px] animate-rise">
-          <ProductDemo />
-        </div>
-        <div role="status" className="rounded-card border border-rule bg-paper shadow-card px-8 py-7 w-full max-w-[340px] text-center animate-rise [animation-delay:120ms]">
+      <div className="flex h-screen items-center justify-center px-4">
+        <div role="status" className="rounded-card border border-rule bg-paper shadow-card px-8 py-7 w-full max-w-[340px] text-center animate-rise">
           <div className="relative mx-auto w-14 h-10 overflow-hidden" aria-hidden>
             {[0, 1, 2, 3, 4].map((i) => (
               <span

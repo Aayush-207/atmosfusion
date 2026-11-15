@@ -10,11 +10,12 @@ export default function Layout() {
       <Header />
       <div className="flex-1 flex overflow-hidden">
         <WeightEngineDrawer />
-        <main className="flex-1 flex flex-col min-w-0 bg-paper2 p-4 gap-4">
-          <div className="card flex-1 min-h-0 relative overflow-clip">
-            <MainMap />
+        {/* The map fills the middle edge to edge; the scorecard floats over its foot */}
+        <main className="flex-1 min-w-0 relative overflow-hidden">
+          <MainMap />
+          <div className="absolute inset-x-3 bottom-3 z-[20]">
+            <ScorecardTray />
           </div>
-          <ScorecardTray />
         </main>
         <AnalyticsDrawer />
       </div>
