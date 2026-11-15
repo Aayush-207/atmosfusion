@@ -5,7 +5,7 @@ import Layout from "./components/layout/Layout";
 import { API } from "./types/weather";
 
 export default function App() {
-  const { setForecast, selectStation, selectedStationId } = useWeatherStore();
+  const { setForecast, selectStation } = useWeatherStore();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["forecast", "pune"],
@@ -25,17 +25,19 @@ export default function App() {
     }
   });
 
+  // Process the forecast once when it arrives (coverage cells are heavy geometry). Switching stations must not
+  // re-run this, or every switch would rebuild every station and stall a frame.
   useEffect(() => {
-    if (data) {
-      setForecast(data);
-      if (!selectedStationId && data.stations.length > 0) {
-        selectStation(data.stations[0].id);
-      }
+    if (!data) return;
+    setForecast(data);
+    if (!useWeatherStore.getState().selectedStationId && data.stations.length > 0) {
+      selectStation(data.stations[0].id);
     }
-    if (scorecardData) {
-      useWeatherStore.getState().setScorecard(scorecardData);
-    }
-  }, [data, scorecardData, setForecast, selectStation, selectedStationId]);
+  }, [data, setForecast, selectStation]);
+
+  useEffect(() => {
+    if (scorecardData) useWeatherStore.getState().setScorecard(scorecardData);
+  }, [scorecardData]);
 
   if (isLoading || error) {
     return (

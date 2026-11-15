@@ -80,6 +80,9 @@ export const MODEL_FAMILIES: Record<string, string> = {
 // Inline styles and SVG take var() as is; MapLibre needs the value, so use cssColor().
 const v = (name: string) => `var(--${name})`;
 
+/** The CSS variables that give an element a layer's signature colour (with the tone-layer class). */
+export const hueVars = ([h, c]: [number, number]) => ({ "--h": h, "--c": c }) as React.CSSProperties;
+
 export function cssColor(c: string) {
   const m = /^var\((--[\w-]+)\)$/.exec(c);
   return m ? getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim() || c : c;
@@ -115,33 +118,39 @@ const rain = (mm: number) => RAIN.find(([t]) => mm >= t)![1];
 const HIGH = v("level-high"), MID = v("level-mid"), LOW = v("level-low");
 const tri = (x: number, hi: number, mid: number) => (x >= hi ? HIGH : x >= mid ? MID : LOW);
 
-export const LAYERS: Record<LayerMode, { label: string; caption: string; color: (s: WeatherStation) => string; legend: Legend }> = {
+// hue: each layer's signature colour as [oklch hue, chroma], used on its button, legend heading and ranking.
+export const LAYERS: Record<LayerMode, { label: string; caption: string; hue: [number, number]; color: (s: WeatherStation) => string; legend: Legend }> = {
   consensus: {
     label: "Consensus",
+    hue: [255, 0.16],
     caption: "Blended 24h rainfall at each gauge, coloured by IMD category.",
     color: (s) => rain(s.consensus_blend),
     legend: RAIN.map(([, color, label]) => ({ color, label })),
   },
   trust: {
     label: "Trust",
+    hue: [190, 0.1],
     caption: "Which model family carries the most weight at each gauge.",
     color: (s) => FAMILY_COLORS[s.dominant_family] ?? FAMILY_COLORS.Ensemble,
     legend: Object.entries(FAMILY_COLORS).map(([label, color]) => ({ color, label })),
   },
   disagreement: {
     label: "Disagreement",
+    hue: [65, 0.14],
     caption: "Spread between models. Wider spread means less certain forecast.",
     color: (s) => tri(s.disagreement_index, 100, 25),
     legend: [{ color: HIGH, label: "≥100 mm" }, { color: MID, label: "25 to 100 mm" }, { color: LOW, label: "<25 mm" }],
   },
   risk: {
     label: "Risk",
+    hue: [27, 0.18],
     caption: "Plausible upper bound of the blend, for extreme-event preparedness.",
     color: (s) => tri(s.worst_case_90th, 115.6, 64.5),
     legend: [{ color: HIGH, label: "≥115.6 mm" }, { color: MID, label: "64.5 to 115.6 mm" }, { color: LOW, label: "<64.5 mm" }],
   },
   coverage: {
     label: "Coverage",
+    hue: [152, 0.13],
     caption: "Area each gauge represents: its Voronoi cell, clipped to the WMO reach for its terrain (8.9 km in the Ghats, 13.5 km elsewhere).",
     // Bigger cell = each gauge stands for more ground = sparser network there.
     color: (s) => tri(s.coverage_radius_km ?? 0, 11, 8.5),

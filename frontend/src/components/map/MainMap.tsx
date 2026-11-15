@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo, useRef } from "react";
+import CountUp from "@/components/layout/CountUp";
 import { Info, TriangleAlert } from "lucide-react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useWeatherStore } from "@/store/useWeatherStore";
-import { LAYERS, MODEL_LABELS, MODEL_COLORS, cssColor, type WeatherStation, type LayerMode } from "@/types/weather";
+import { LAYERS, hueVars, MODEL_LABELS, MODEL_COLORS, cssColor, type WeatherStation, type LayerMode } from "@/types/weather";
 
 const CENTER = { lat: 18.5204, lng: 73.8567 };
 
@@ -76,7 +77,7 @@ function StationCard({ station, below = false }: { station: WeatherStation; belo
       <div className="px-4 pt-3.5 pb-3 flex items-start justify-between gap-3 border-b border-rule">
         <div className="min-w-0">
           <div className="font-display text-[15px] font-semibold leading-snug text-heading">{station.name}</div>
-          <div className="text-[12px] text-label leading-snug mt-0.5">{station.terrain_type}, <span className="num">{station.elevation_m} m</span></div>
+          <div className="text-[12px] text-label leading-snug mt-0.5">{station.terrain_type}, <span className="num"><CountUp value={station.elevation_m} replay={station.id} duration={700} /> m</span></div>
         </div>
         <span className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-full px-2 py-[3px] text-[11px] font-medium text-ink2"
           style={{ background: `color-mix(in oklab, ${catColor} 16%, var(--color-paper))` }}>
@@ -89,7 +90,7 @@ function StationCard({ station, below = false }: { station: WeatherStation; belo
         <div>
           <div className="text-[11px] font-medium text-label">Blend, next 24 h</div>
           <div className="font-display text-[28px] font-semibold leading-none mt-1 num c-forecast">
-            {station.consensus_blend}<span className="text-[13px] font-medium text-label"> mm</span>
+            <CountUp value={station.consensus_blend} replay={station.id} duration={700} /><span className="text-[13px] font-medium text-label"> mm</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -99,7 +100,7 @@ function StationCard({ station, below = false }: { station: WeatherStation; belo
               style={{ stroke: ringTone, strokeDasharray: `${Math.max(heavy, 0.5)} 100` }} />
           </svg>
           <div className="leading-tight">
-            <div className="num text-[15px] font-semibold text-heading">{heavy}%</div>
+            <div className="num text-[15px] font-semibold text-heading"><CountUp value={heavy} replay={station.id} duration={700} />%</div>
             <div className="text-[11px] text-label">heavy rain</div>
           </div>
         </div>
@@ -110,7 +111,7 @@ function StationCard({ station, below = false }: { station: WeatherStation; belo
           <div key={label} className="grid grid-cols-[60px_1fr_56px] items-center gap-2 text-[12px]">
             <dt className="text-label">{label}</dt>
             <dd className="meter !h-1.5"><span style={{ transform: `scaleX(${v / top})`, background: color }} /></dd>
-            <dd className="num text-right font-medium text-ink">{v} mm</dd>
+            <dd className="num text-right font-medium text-ink"><CountUp value={v} replay={station.id} duration={700} /> mm</dd>
           </div>
         ))}
       </dl>
@@ -120,7 +121,7 @@ function StationCard({ station, below = false }: { station: WeatherStation; belo
           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: MODEL_COLORS[leadKey] }} aria-hidden />
           <span className="text-label">Led by</span>
           <span className="font-medium text-ink truncate">{MODEL_LABELS[leadKey] ?? leadKey}</span>
-          <span className="num ml-auto font-semibold text-heading">{Math.round(leadW * 100)}%</span>
+          <span className="num ml-auto font-semibold text-heading"><CountUp value={Math.round(leadW * 100)} replay={station.id} duration={700} />%</span>
         </div>
       )}
 
@@ -160,7 +161,7 @@ function VectorMap({ basemap }: { basemap: string }) {
       center: [CENTER.lng, CENTER.lat],
       zoom: 10,
       attributionControl: { compact: true },
-      fadeDuration: 200,
+      fadeDuration: 400,
     });
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
     map.addControl(new maplibregl.ScaleControl({}), "bottom-right");
@@ -189,6 +190,19 @@ function VectorMap({ basemap }: { basemap: string }) {
     mapRef.current.fitBounds(b, { padding: { top: 90, bottom: 90, left: 100, right: 220 }, maxZoom: 12, duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1200 });
   }, [stations]);
 
+  // Picking another gauge glides the map to it (not the first selection, which the opening fit already frames)
+  const lastSel = useRef<string | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    const s = stations.find((x) => x.id === selectedStationId);
+    if (!map || !s) return;
+    if (lastSel.current === null) { lastSel.current = s.id; return; }
+    if (lastSel.current === s.id) return;
+    lastSel.current = s.id;
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    map.easeTo({ center: [s.lng, s.lat], duration: reduce ? 0 : 1000, easing: (t) => 1 - Math.pow(1 - t, 3) });
+  }, [selectedStationId, stations]);
+
   // Voronoi cells as a GeoJSON fill layer; colours come from feature properties.
   useEffect(() => {
     const map = mapRef.current;
@@ -209,25 +223,59 @@ function VectorMap({ basemap }: { basemap: string }) {
     map.addLayer({ id: "cells-line", type: "line", source: "cells", paint: { "line-color": ["get", "color"], "line-width": ["case", ["get", "sel"], 2.5, 1.2] } });
   }, [cells, colorOf, selectedStationId, styleTick]);
 
-  // HTML markers sit above the canvas, so they survive style switches untouched.
+  // Hovering a gauge shows the ground it covers: its Voronoi cell in a soft blue with a crisp outline, like
+  // Google Maps' location circle. The data stays put on leave so the shape fades out instead of vanishing.
+  const hoverId = hover?.s.id ?? null;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleTick || !map.isStyleLoaded()) return;
+    const blue = cssColor("var(--map-coverage)");
+    if (!map.getSource("hover-cell")) {
+      map.addSource("hover-cell", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({ id: "hover-fill", type: "fill", source: "hover-cell",
+        paint: { "fill-color": blue, "fill-opacity": 0, "fill-opacity-transition": { duration: 300, delay: 0 } } });
+      map.addLayer({ id: "hover-line", type: "line", source: "hover-cell",
+        paint: { "line-color": blue, "line-width": 2, "line-opacity": 0, "line-opacity-transition": { duration: 300, delay: 0 } } });
+    }
+    map.moveLayer("hover-fill"); map.moveLayer("hover-line"); // stay above the coverage layer
+    const cell = hoverId ? all[hoverId] : undefined;
+    if (cell) (map.getSource("hover-cell") as maplibregl.GeoJSONSource).setData(cell);
+    map.setPaintProperty("hover-fill", "fill-opacity", cell ? 0.18 : 0);
+    map.setPaintProperty("hover-line", "line-opacity", cell ? 0.9 : 0);
+  }, [hoverId, all, styleTick]);
+
+  // HTML markers sit above the canvas, so they survive style switches untouched. They are created once and
+  // updated in place: a selection or layer change rewrites only the markers whose look changed, so nothing blinks.
+  const markers = useRef(new Map<string, { marker: maplibregl.Marker; el: HTMLDivElement; html: string }>());
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    const markers = stations.map((s) => {
+    const store = markers.current;
+    const ids = new Set(stations.map((s) => s.id));
+    for (const [id, m] of store) if (!ids.has(id)) { m.marker.remove(); store.delete(id); }
+    for (const s of stations) {
       const sel = s.id === selectedStationId;
-      const el = document.createElement("div");
-      el.innerHTML = pinHtml(s, colorOf(s), sel, labelSide(s, stations));
-      el.style.zIndex = sel ? "2" : "1";
-      el.onclick = () => selectStation(s.id);
-      el.onmouseenter = () => {
+      const html = pinHtml(s, colorOf(s), sel, labelSide(s, stations));
+      let m = store.get(s.id);
+      if (!m) {
+        const el = document.createElement("div");
+        m = { marker: new maplibregl.Marker({ element: el }).setLngLat([s.lng, s.lat]).addTo(map), el, html: "" };
+        store.set(s.id, m);
+      }
+      m.el.onclick = () => selectStation(s.id);
+      m.el.onmouseenter = () => {
         const p = map.project([s.lng, s.lat]);
         setHover({ s, x: p.x, y: p.y });
       };
-      el.onmouseleave = () => setHover(null);
-      return new maplibregl.Marker({ element: el }).setLngLat([s.lng, s.lat]).addTo(map);
-    });
-    return () => markers.forEach((m) => m.remove());
+      m.el.onmouseleave = () => setHover(null);
+      m.el.style.zIndex = sel ? "2" : "1";
+      if (m.html !== html) { m.el.innerHTML = html; m.html = html; }
+    }
   }, [stations, selectedStationId, colorOf, selectStation]);
+  useEffect(() => {
+    const store = markers.current;
+    return () => { store.forEach((m) => m.marker.remove()); store.clear(); };
+  }, []);
 
   return (
     <div className="w-full h-full relative">
@@ -249,9 +297,11 @@ function VectorMap({ basemap }: { basemap: string }) {
 function LayerBar() {
   const { layerMode, setLayerMode } = useWeatherStore();
   return (
-    <div className="absolute top-4 left-4 z-[10] tray shadow-float" role="group" aria-label="Map layer">
+    <div className="absolute top-4 left-4 z-[10] tray shadow-float max-w-[calc(100%-200px)] overflow-x-auto no-scrollbar" role="group" aria-label="Map layer">
       {(Object.keys(LAYERS) as LayerMode[]).map((id) => (
-        <button key={id} type="button" onClick={() => setLayerMode(id)} title={LAYERS[id].caption} aria-pressed={layerMode === id}>
+        <button key={id} type="button" onClick={() => setLayerMode(id)} title={LAYERS[id].caption} aria-pressed={layerMode === id}
+          className="tone-layer inline-flex items-center gap-1.5" style={hueVars(LAYERS[id].hue)}>
+          <span className="dot w-1.5 h-1.5 rounded-full" aria-hidden />
           {LAYERS[id].label}
         </button>
       ))}
@@ -263,9 +313,10 @@ function Legend() {
   const mode = useWeatherStore((s) => s.layerMode);
   const layer = LAYERS[mode];
   return (
-    <div className="absolute bottom-[68px] left-4 z-[10] cut px-3 py-2.5">
+    <div className="absolute bottom-[68px] left-4 z-[10] cut tone-layer px-3 py-2.5" style={hueVars(layer.hue)}>
       <div className="flex items-center gap-1.5 mb-2">
-        <span className="font-display text-[13px] font-semibold text-ink">{layer.label}</span>
+        <span className="w-2 h-2 rounded-full" style={{ background: "var(--tone)" }} aria-hidden />
+        <span className="font-display text-[13px] font-semibold tone-text">{layer.label}</span>
         <span className="text-muted cursor-help" title={layer.caption} aria-label={layer.caption}><Info size={13} aria-hidden /></span>
       </div>
       <ul key={mode} className="grid grid-cols-[max-content_max-content] gap-x-4 gap-y-1 animate-fade">

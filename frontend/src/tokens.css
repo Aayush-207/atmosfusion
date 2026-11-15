@@ -89,3 +89,11 @@
   --data-spread: oklch(55% 0.05 265); --data-average: oklch(64% 0.01 260);
 }
 :root { --data-observed: oklch(53% 0.1 188); --data-upper: oklch(56% 0.15 55); }
+/* Motion: slower and smoother. Hover and press 200ms, state changes 400ms, entrances 650ms, drawers 520ms.
+   One soft ease-out for everything that settles, one ease-in-out for things that travel. */
+:root {
+  --dur-micro: 200ms; --dur-short: 400ms; --dur-long: 650ms; --dur-drawer: 520ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1); --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+/* Hovered gauge's coverage on the map, after Google Maps' location blue */
+:root { --map-coverage: oklch(62% 0.17 258); }

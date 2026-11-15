@@ -1,4 +1,5 @@
 import { Mountain, MapPin, Scale, Lightbulb, CloudRain } from "lucide-react";
+import CountUp from "@/components/layout/CountUp";
 import { useWeatherStore } from "@/store/useWeatherStore";
 import ScrollArea from "@/components/layout/ScrollArea";
 import { MODEL_LABELS, MODEL_FAMILIES, MODEL_COLORS } from "@/types/weather";
@@ -24,20 +25,20 @@ export default function WeightEngineDrawer() {
       <ScrollArea>
       <div className="p-4 pb-16 space-y-4">
         <header className="px-1 pt-1 pb-1">
-          <h1 key={station.id} className="font-display text-[22px] font-semibold leading-[1.2] tracking-[-0.015em] text-heading animate-fade">{station.name}</h1>
+          <h1 className="font-display text-[22px] font-semibold leading-[1.2] tracking-[-0.015em] text-heading">{station.name}</h1>
           <dl className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
-            <div className="flex items-center gap-1.5"><dt><Mountain size={14} className="text-label" aria-label="Elevation" /></dt><dd className="num font-medium text-ink2">{station.elevation_m} m</dd></div>
+            <div className="flex items-center gap-1.5"><dt><Mountain size={14} className="text-label" aria-label="Elevation" /></dt><dd className="num font-medium text-ink2"><CountUp value={station.elevation_m} replay={station.id} /> m</dd></div>
             <div className="flex items-center gap-1.5 min-w-0"><dt><MapPin size={14} className="text-label" aria-label="Terrain" /></dt><dd className="font-medium text-ink2 truncate">{station.terrain_type}</dd></div>
           </dl>
         </header>
 
-        <section className="card tone-blue">
+        <section className="card tone-teal">
           <div className="card-head">
             <h2><Scale size={14} aria-hidden />Model weights</h2>
             <span className="aside">MAE over 48 h, mm</span>
           </div>
 
-          <WeightDonut weights={weights} />
+          <WeightDonut weights={weights} replay={station.id} />
 
           <table className="rtable inset">
             <thead>
@@ -57,9 +58,9 @@ export default function WeightEngineDrawer() {
                     </span>
                     <span className="block pl-[18px] text-[12px] text-label">{MODEL_FAMILIES[key] ?? "Unknown"}</span>
                   </td>
-                  <td className={`num text-right text-[13px] ${maeTone(station.recent_mae_48h[key])}`}>{station.recent_mae_48h[key]}</td>
+                  <td className={`num text-right text-[13px] ${maeTone(station.recent_mae_48h[key])}`}><CountUp value={station.recent_mae_48h[key]} replay={station.id} /></td>
                   <td className="w-[72px]">
-                    <span className="block text-right font-display text-[15px] font-semibold num text-heading">{Math.round(w * 100)}%</span>
+                    <span className="block text-right font-display text-[15px] font-semibold num text-heading"><CountUp value={Math.round(w * 100)} replay={station.id} />%</span>
                     <span className="meter mt-1"><span style={{ transform: `scaleX(${w})`, background: MODEL_COLORS[key] }} /></span>
                   </td>
                 </tr>
@@ -75,7 +76,7 @@ export default function WeightEngineDrawer() {
           </section>
         )}
 
-        <BlendLedger observed={station.observed_rain_24h} blend={station.consensus_blend} avg={station.simple_average} />
+        <BlendLedger observed={station.observed_rain_24h} blend={station.consensus_blend} avg={station.simple_average} replay={station.id} />
       </div>
       </ScrollArea>
     </aside>
@@ -84,7 +85,7 @@ export default function WeightEngineDrawer() {
 
 // Each model's share of the blend as a donut, in the same colour the table uses for that model.
 // Segments are drawn on one circle with pathLength 100, so a share is its own dash length.
-function WeightDonut({ weights }: { weights: [string, number][] }) {
+function WeightDonut({ weights, replay }: { weights: [string, number][]; replay: string }) {
   const total = weights.reduce((n, [, w]) => n + w, 0) || 1;
   const GAP = 0.8; // hairline of white between segments
   // Where each segment starts, as a running sum of the shares before it
@@ -100,13 +101,13 @@ function WeightDonut({ weights }: { weights: [string, number][] }) {
           const len = Math.max(shares[i] - GAP, 0);
           return (
             <circle key={k} cx="21" cy="21" r="15.9" fill="none" pathLength={100} strokeWidth="6"
-              style={{ stroke: MODEL_COLORS[k], strokeDasharray: `${len} ${100 - len}`, strokeDashoffset: -starts[i], transition: "stroke-dasharray 300ms var(--ease-out), stroke-dashoffset 300ms var(--ease-out)" }} />
+              style={{ stroke: MODEL_COLORS[k], strokeDasharray: `${len} ${100 - len}`, strokeDashoffset: -starts[i], transition: "stroke-dasharray var(--dur-long) var(--ease-in-out), stroke-dashoffset var(--dur-long) var(--ease-in-out)" }} />
           );
         })}
       </svg>
       <div className="min-w-0">
         <div className="text-[12px] text-label">Largest share</div>
-        <div className="font-display text-[28px] font-semibold leading-none mt-1 num text-heading">{Math.round(leadW * 100)}%</div>
+        <div className="font-display text-[28px] font-semibold leading-none mt-1 num text-heading"><CountUp value={Math.round(leadW * 100)} replay={replay} />%</div>
         <div className="flex items-center gap-1.5 text-[13px] font-semibold text-ink mt-1.5 min-w-0">
           <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: MODEL_COLORS[leadKey] }} aria-hidden />
           <span className="truncate">{MODEL_LABELS[leadKey] ?? leadKey}</span>
@@ -119,34 +120,34 @@ function WeightDonut({ weights }: { weights: [string, number][] }) {
 
 // The result of the ensemble, at the foot of the panel: the blended figure, the simple average and the gauge,
 // and how much smaller the blend's miss is than the average's.
-function BlendLedger({ observed, blend, avg }: { observed: number; blend: number; avg: number }) {
+function BlendLedger({ observed, blend, avg, replay }: { observed: number; blend: number; avg: number; replay: string }) {
   const eb = Math.abs(blend - observed), ea = Math.abs(avg - observed);
   const top = Math.max(eb, ea, 1);
   const rows: [string, number, string][] = [["Blend", eb, "var(--data-forecast)"], ["Average", ea, "var(--data-average)"]];
   return (
-    <section className="card tone-emerald" aria-label="Blended forecast">
+    <section className="card tone-blue" aria-label="Blended forecast">
       <div className="card-head">
         <h2><CloudRain size={14} aria-hidden />AtmosFusion blend</h2>
         <span className="aside">next 24 h</span>
       </div>
       <div className="card-body">
         <div className="figure c-forecast text-[38px] leading-none">
-          {blend}<span className="text-[16px] font-semibold text-label"> mm</span>
+          <CountUp value={blend} replay={replay} /><span className="text-[16px] font-semibold text-label"> mm</span>
         </div>
         <dl className="tiles grid-cols-2 mt-3 -mx-4">
-          <div><dt className="text-[12px] text-label">Simple average</dt><dd className="num text-[15px] font-semibold text-ink2">{avg} mm</dd></div>
-          <div><dt className="text-[12px] text-label">Gauge observed</dt><dd className="num text-[15px] font-semibold c-observed">{observed} mm</dd></div>
+          <div><dt className="text-[12px] text-label">Simple average</dt><dd className="num text-[15px] font-semibold text-ink2"><CountUp value={avg} replay={replay} /> mm</dd></div>
+          <div><dt className="text-[12px] text-label">Gauge observed</dt><dd className="num text-[15px] font-semibold c-observed"><CountUp value={observed} replay={replay} /> mm</dd></div>
         </dl>
         <div className="mt-3 space-y-2">
           <div className="flex items-baseline justify-between gap-2 text-[12px]">
             <span className="text-label">Miss against the gauge</span>
-            {ea > eb && <span className="font-semibold text-success">{Math.round((1 - eb / ea) * 100)}% smaller</span>}
+            {ea > eb && <span className="font-semibold text-success"><CountUp value={Math.round((1 - eb / ea) * 100)} replay={replay} />% smaller</span>}
           </div>
           {rows.map(([label, v, color]) => (
             <div key={label} className="grid grid-cols-[56px_1fr_56px] items-center gap-2 text-[12px]">
               <span className="text-label">{label}</span>
               <span className="meter"><span style={{ transform: `scaleX(${v / top})`, background: color }} /></span>
-              <span className="num text-right text-ink">{v.toFixed(1)} mm</span>
+              <span className="num text-right text-ink"><CountUp value={+v.toFixed(1)} decimals={1} replay={replay} /> mm</span>
             </div>
           ))}
         </div>

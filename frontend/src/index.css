@@ -17,6 +17,11 @@
 @tailwind utilities;
 
 @layer base {
+  /* Every control eases its colour, surface and press; zero specificity so a component's own transition wins */
+  :where(button, a, [role="tab"], summary) {
+    transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+    transition-duration: var(--dur-micro); transition-timing-function: var(--ease-out);
+  }
   body { @apply m-0 bg-paper2 text-ink font-sans; }
   #root { @apply w-full h-screen overflow-hidden flex flex-col; }
   ::-webkit-scrollbar { width: 6px; }
@@ -55,6 +60,12 @@
     --tone-tile: oklch(95% calc(var(--c) * 0.25) var(--h));
   }
   .tone-title, .tone-text { color: var(--tone); }
+  /* Colour on the icon tile only: titles stay neutral, the tile says what the card is about */
+  .card[class*="tone-"] .card-head h2 svg { color: var(--tone); background: var(--tone-tile); }
+  /* A map layer's own colour, set per element through --h and --c (hueVars) */
+  .tray > button.tone-layer[aria-pressed="true"] { background: var(--tone); color: var(--color-paper); }
+  .tray > button.tone-layer .dot { background: var(--tone); }
+  .tray > button.tone-layer[aria-pressed="true"] .dot { background: var(--color-paper); }
 
   /* Data colours by meaning */
   .c-forecast { color: var(--data-forecast); } .c-observed { color: var(--data-observed); } .c-upper { color: var(--data-upper); }
@@ -110,6 +121,33 @@
   .meter { display: block; height: 4px; border-radius: var(--radius-pill); background: var(--color-paper-3); overflow: hidden; }
   .meter > span { display: block; height: 100%; width: 100%; border-radius: inherit; transform-origin: left; transition: transform var(--dur-short) var(--ease-out); }
 }
+
+/* Slower keyframes (these follow Tailwind's utilities, so they win) */
+.animate-fade { animation-duration: 450ms; animation-timing-function: var(--ease-out); }
+.animate-pop { animation-duration: 320ms; }
+.animate-rise { animation-duration: var(--dur-long); }
+.animate-draw { animation-duration: 1200ms; }
+
+/* Cards rise in once, a beat apart down each column */
+@keyframes card-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.card { animation: card-in var(--dur-long) var(--ease-out) both; transition: box-shadow var(--dur-short) var(--ease-out); }
+:is(aside, main) .card:nth-child(2) { animation-delay: 70ms; }
+:is(aside, main) .card:nth-child(3) { animation-delay: 130ms; }
+:is(aside, main) .card:nth-child(4) { animation-delay: 180ms; }
+:is(aside, main) .card:nth-child(5) { animation-delay: 220ms; }
+
+/* Map controls, detailed to match the panels. MapLibre rotates the compass icon itself for the bearing. */
+.maplibregl-ctrl-group { border-radius: 10px !important; overflow: hidden; border: 1px solid var(--color-rule) !important; box-shadow: var(--shadow-float) !important; background: var(--color-paper) !important; }
+.maplibregl-ctrl-group button { width: 34px !important; height: 34px !important; transition: background-color var(--dur-micro) ease; }
+.maplibregl-ctrl-group button + button { border-top: 1px solid var(--color-rule) !important; }
+.maplibregl-ctrl-group button:hover { background-color: var(--color-paper-2) !important; }
+.maplibregl-ctrl-group button:active .maplibregl-ctrl-icon { transform: scale(0.92); }
+/* Compass: red north needle, grey south, a white pivot */
+.maplibregl-ctrl button.maplibregl-ctrl-compass .maplibregl-ctrl-icon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 29 29'%3E%3Cpath d='M14.5 4.5 18.2 14.5h-7.4z' fill='%23E5484D'/%3E%3Cpath d='M14.5 24.5 10.8 14.5h7.4z' fill='%23A3ACB9'/%3E%3Ccircle cx='14.5' cy='14.5' r='1.6' fill='%23fff' stroke='%236B7280' stroke-width='.6'/%3E%3C/svg%3E") !important;
+}
+.maplibregl-ctrl-scale { border-radius: 0 0 4px 4px; padding: 0 6px; box-shadow: var(--shadow-card); }
+.maplibregl-ctrl-attrib.maplibregl-compact { border-radius: 999px !important; background: color-mix(in oklab, var(--color-paper) 90%, transparent) !important; }
 
 /* Scrollbars hidden in the side panels; a down arrow (ScrollArea) says when there is more */
 .no-scrollbar { scrollbar-width: none; }

@@ -1,4 +1,5 @@
 import { ChevronUp } from "lucide-react";
+import CountUp from "@/components/layout/CountUp";
 import { useWeatherStore } from "@/store/useWeatherStore";
 import type { VerificationRow } from "@/types/weather";
 
@@ -21,7 +22,7 @@ export default function ScorecardTray() {
   });
 
   return (
-    <div className="card tone-crimson shadow-float">
+    <div className="card tone-emerald shadow-float">
       <button
         type="button"
         onClick={toggleScorecard}
@@ -39,7 +40,7 @@ export default function ScorecardTray() {
         </span>
       </button>
       {/* grid-rows 0fr to 1fr gives a height transition without measuring (the documented exception for disclosure) */}
-      <div id="scorecard" className={`grid transition-[grid-template-rows] duration-short ease-out ${scorecardOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+      <div id="scorecard" className={`grid transition-[grid-template-rows] duration-[520ms] ease-in-out ${scorecardOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
         <div className="overflow-hidden">
           <div className="pb-3 overflow-x-auto">
             <table className="rtable inset">
@@ -68,7 +69,7 @@ export default function ScorecardTray() {
                         const isBest = v === best[i];
                         return (
                           <td key={h} className={`text-right num ${isBest ? "text-success font-semibold" : ours ? "text-heading font-semibold" : "text-ink2"}`}>
-                            {fmt(v)}
+                            <CountUp value={v} decimals={fmt(v).split(".")[1]?.length ?? 0} replay={scorecardOpen} />
                           </td>
                         );
                       })}
