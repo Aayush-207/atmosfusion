@@ -1,8 +1,4 @@
-﻿/* Hallmark · shape: app screen · genre: modern-minimal · theme: Cobalt (deal 3/3, seed rainfall-forecast-blending-console-f408·80caa1a3·2026-11-14·r0) · redesign: full
- * nav: kept top bar, wordmark left, region and regime, alerts as text right · signature: the blend ledger, the gauge's blended rainfall large on graphite over the simple average and the miss against the gauge · states: loading (outlook skeleton, app loading screen), error (offline screen), full
- * axes: light/grotesk-sans/cool · posture: restrained · contrast: pass · v2.0.0 */
-/* Hallmark · pre-emit critique: P4 H5 E4 S4 R5 V4 · weakest: P, a calm console is a familiar argument; made the blend ledger the one dark object so the screen argues that the blend, not the map, is the answer */
-@import "@fontsource/inter/400.css";
+﻿@import "@fontsource/inter/400.css";
 @import "@fontsource/inter/500.css";
 @import "@fontsource/inter/600.css";
 @import "@fontsource/inter/700.css";
@@ -22,75 +18,43 @@
     transition-property: color, background-color, border-color, box-shadow, opacity, transform;
     transition-duration: var(--dur-micro); transition-timing-function: var(--ease-out);
   }
-  body { @apply m-0 bg-paper2 text-ink font-sans; }
   #root { @apply w-full h-screen overflow-hidden flex flex-col; }
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-thumb { background: var(--color-rule-2); border-radius: var(--radius-pill); }
-  .maplibregl-map { font-family: var(--font-body); }
-  .maplibregl-ctrl-group { border-radius: var(--radius-input) !important; box-shadow: var(--shadow-card), 0 0 0 1px var(--color-rule) !important; }
 }
 
 @layer components {
-  /* Shades by role: headings the darkest cobalt, figures a deep cobalt, labels a blue-grey tint */
   h1, h2, h3 { color: var(--color-heading); }
-  .num { font-variant-numeric: tabular-nums; }
-  .figure { font-family: var(--font-display); font-weight: 600; color: var(--color-heading); letter-spacing: var(--tracking-display); font-variant-numeric: tabular-nums; }
+  .figure { font-family: var(--font-display); font-weight: 600; color: var(--color-heading); letter-spacing: var(--tracking-display); }
 
-  /* Panel heads: the display face, a step up from body, sentence case, a hairline under the row */
-  .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-sm); padding-bottom: var(--space-xs); margin-bottom: var(--space-sm); border-bottom: 1px solid var(--color-rule); }
-  .panel-head h2 { font-size: var(--text-title); font-weight: 600; max-width: none; }
-  .panel-head .aside { font-size: var(--text-xs); color: var(--color-label); }
-
-  /* Cards: white boxes on the pale blue ground, a tinted head strip, one soft shadow. Never nested. */
+  /* Cards: white boxes on the light ground, a white head with a coloured icon tile, one soft shadow. Never nested. */
   .card { background: var(--color-paper); border: 1px solid var(--color-rule-2); border-radius: var(--radius-card); box-shadow: var(--shadow-card); overflow: hidden; }
   .card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); padding: 10px var(--space-md); min-height: 48px; background: var(--color-paper); border-bottom: 1px solid var(--color-rule); }
-  .card-head h2 { font: 600 15px/1.2 var(--font-display); letter-spacing: -0.01em; color: var(--color-heading); white-space: nowrap; max-width: none; display: flex; align-items: center; gap: 10px; }
+  .card-head h2 { font: 600 15px/1.2 var(--font-display); letter-spacing: -0.01em; color: var(--color-heading); white-space: nowrap; display: flex; align-items: center; gap: 10px; }
   .card-head h2 svg { box-sizing: content-box; padding: 6px; border-radius: 8px; color: var(--color-ink-2); background: var(--color-paper-2); flex: none; }
   .card-head .aside { font-size: 12px; font-weight: 500; color: var(--color-label); white-space: nowrap; }
   .card-body { padding: var(--space-md); }
 
-  /* Card hues: each card names a hue and chroma; its header wash, title, sub-headers and figures derive from it.
-     Headers take the strong shade, sub-headers (notes, table heads) a quieter shade of the same hue. */
+  /* Card and layer hues: an element names a hue and chroma (--h, --c); its tones derive from them */
   .tone-blue { --h: 262; --c: 0.19; } .tone-amber { --h: 68; --c: 0.13; } .tone-teal { --h: 195; --c: 0.1; }
   .tone-coral { --h: 35; --c: 0.17; } .tone-sky { --h: 238; --c: 0.14; } .tone-emerald { --h: 160; --c: 0.12; }
-  .tone-crimson { --h: 12; --c: 0.17; }
   [class*="tone-"] {
     --tone: oklch(45% var(--c) var(--h)); --tone-sub: oklch(46% calc(var(--c) * 0.45) var(--h));
-    --tone-wash: oklch(97.4% calc(var(--c) * 0.12) var(--h)); --tone-rule: oklch(90% calc(var(--c) * 0.3) var(--h));
     --tone-tile: oklch(95% calc(var(--c) * 0.25) var(--h));
   }
-  .tone-title, .tone-text { color: var(--tone); }
-  /* Colour on the icon tile only: titles stay neutral, the tile says what the card is about */
+  .tone-text { color: var(--tone); }
   .card[class*="tone-"] .card-head h2 svg { color: var(--tone); background: var(--tone-tile); }
-  /* A map layer's own colour, set per element through --h and --c (hueVars) */
   .tray > button.tone-layer[aria-pressed="true"] { background: var(--tone); color: var(--color-paper); }
   .tray > button.tone-layer .dot { background: var(--tone); }
   .tray > button.tone-layer[aria-pressed="true"] .dot { background: var(--color-paper); }
 
   /* Data colours by meaning */
-  .c-forecast { color: var(--data-forecast); } .c-observed { color: var(--data-observed); } .c-upper { color: var(--data-upper); }
-  .c-spread { color: var(--data-spread); } .c-average { color: var(--data-average); }
+  .c-forecast { color: var(--data-forecast); } .c-observed { color: var(--data-observed); }
+  .c-upper { color: var(--data-upper); } .c-spread { color: var(--data-spread); }
 
   /* Tiles: divided cells inside a card (a grid of figures), never boxes of their own */
   .tiles { display: grid; gap: 1px; background: var(--color-rule); }
   .tiles > * { background: var(--color-paper); padding: var(--space-sm) var(--space-md); }
 
-  /* Chips: small tinted facts */
-  .chip { display: inline-flex; align-items: center; gap: var(--space-2xs); padding: var(--space-3xs) var(--space-xs); border-radius: var(--radius-input); background: var(--color-paper-3); color: var(--color-ink-2); font-size: var(--text-xs); }
-  .chip svg { color: var(--color-accent); }
-
-  /* Keycaps: a face on a 3px edge that lifts on hover and sinks on press */
-  .key {
-    display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2xs);
-    min-height: 32px; padding: 0 var(--space-sm); border: 1px solid var(--color-rule-2); border-radius: var(--radius-input);
-    background: var(--color-key-face); color: var(--color-ink); font: 500 var(--text-sm)/1 var(--font-display);
-    box-shadow: var(--shadow-key); transition: transform var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out), color var(--dur-micro) ease;
-  }
-  .key:hover { transform: translateY(-1px); }
-  .key:active { transform: translateY(3px); box-shadow: var(--shadow-key-press); }
-  .key:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
-
-  /* Options: keys on a sunken tray; the chosen one is pressed and carries the cobalt */
+  /* Options: buttons on a sunken tray; the chosen one is filled */
   .tray { display: inline-flex; gap: var(--space-3xs); padding: var(--space-3xs); border-radius: calc(var(--radius-input) + 2px); background: var(--color-paper-3); box-shadow: var(--shadow-tray); }
   .tray > button {
     min-height: 28px; padding: 0 var(--space-sm); border-radius: var(--radius-input); color: var(--color-muted);
@@ -101,19 +65,14 @@
   .tray > button:active { transform: translateY(1px); }
   .tray > button[aria-pressed="true"], .tray > button[aria-selected="true"] { background: var(--color-ink); color: var(--color-paper); box-shadow: 0 1px 2px oklch(20% 0.02 262 / 0.25); }
 
-  /* A surface on the map: hairline and one soft shadow, cut on two corners where supported */
-  .cut { background: var(--color-paper); border: 1px solid var(--color-rule); border-radius: var(--radius-card); box-shadow: var(--shadow-panel); }
-  @supports (corner-shape: bevel) { .cut { border-radius: var(--cut) 4px var(--cut) 4px; corner-shape: bevel round bevel round; } }
+  /* A floating surface on the map */
+  .cut { background: var(--color-paper); border-radius: var(--radius-card); box-shadow: var(--shadow-panel); }
 
-  /* The one dark object */
-  .graphite { background: var(--color-graphite); color: var(--color-graphite-ink); border-radius: var(--radius-card); }
-
-  /* Ruled tables: horizontal rules only, sentence-case heads in the display face */
+  /* Ruled tables: horizontal rules only */
   .rtable { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
   .rtable thead th { font: 600 12px/1.3 var(--font-body); color: var(--color-label); background: var(--color-paper-2); text-align: left; white-space: nowrap; padding: var(--space-xs) var(--space-sm); border-bottom: 1px solid var(--color-rule-2); }
-  .rtable tbody th, .rtable td { padding: var(--space-xs) var(--space-sm); border-bottom: 1px solid var(--color-rule); text-align: left; font-weight: 400; }
-  .rtable :is(th, td):first-child { padding-left: 0; }
-  .rtable :is(th, td):last-child { padding-right: 0; }
+  .rtable tbody th, .rtable td { padding: var(--space-xs) var(--space-sm); border-bottom: 1px solid var(--color-rule); font-weight: 400; }
+  .rtable tbody th { text-align: left; }
   .rtable.inset :is(th, td):first-child { padding-left: var(--space-sm); }
   .rtable.inset :is(th, td):last-child { padding-right: var(--space-sm); }
 
@@ -122,11 +81,17 @@
   .meter > span { display: block; height: 100%; width: 100%; border-radius: inherit; transform-origin: left; transition: transform var(--dur-short) var(--ease-out); }
 }
 
-/* Slower keyframes (these follow Tailwind's utilities, so they win) */
+/* Keyframe lengths (these follow Tailwind's utilities, so they win) */
 .animate-fade { animation-duration: 450ms; animation-timing-function: var(--ease-out); }
 .animate-pop { animation-duration: 320ms; }
 .animate-rise { animation-duration: var(--dur-long); }
 .animate-draw { animation-duration: 1200ms; }
+
+/* Fill from empty on mount: only the start is given, so each bar or ring animates up to its own inline value */
+@keyframes fill-in { from { transform: scaleX(0); } }
+@keyframes ring-in { from { stroke-dasharray: 0 100; } }
+.fill-in { animation: fill-in 700ms var(--ease-out) both; }
+.ring-in { animation: ring-in 700ms var(--ease-out) both; }
 
 /* Cards rise in once, a beat apart down each column */
 @keyframes card-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
@@ -136,28 +101,34 @@
 :is(aside, main) .card:nth-child(4) { animation-delay: 180ms; }
 :is(aside, main) .card:nth-child(5) { animation-delay: 220ms; }
 
-/* Map controls, detailed to match the panels. MapLibre rotates the compass icon itself for the bearing. */
+/* Map controls, detailed to match the panels (MapLibre's stylesheet loads after ours, hence !important) */
+.maplibregl-map, .maplibregl-marker { font-family: var(--font-body); }
 .maplibregl-ctrl-group { border-radius: 10px !important; overflow: hidden; border: 1px solid var(--color-rule) !important; box-shadow: var(--shadow-float) !important; background: var(--color-paper) !important; }
 .maplibregl-ctrl-group button { width: 34px !important; height: 34px !important; transition: background-color var(--dur-micro) ease; }
 .maplibregl-ctrl-group button + button { border-top: 1px solid var(--color-rule) !important; }
 .maplibregl-ctrl-group button:hover { background-color: var(--color-paper-2) !important; }
 .maplibregl-ctrl-group button:active .maplibregl-ctrl-icon { transform: scale(0.92); }
-/* Compass: red north needle, grey south, a white pivot */
+/* Compass: red north needle, grey south, a white pivot. MapLibre rotates the icon for the bearing. */
 .maplibregl-ctrl button.maplibregl-ctrl-compass .maplibregl-ctrl-icon {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 29 29'%3E%3Cpath d='M14.5 4.5 18.2 14.5h-7.4z' fill='%23E5484D'/%3E%3Cpath d='M14.5 24.5 10.8 14.5h7.4z' fill='%23A3ACB9'/%3E%3Ccircle cx='14.5' cy='14.5' r='1.6' fill='%23fff' stroke='%236B7280' stroke-width='.6'/%3E%3C/svg%3E") !important;
 }
-.maplibregl-ctrl-scale { border-radius: 0 0 4px 4px; padding: 0 6px; box-shadow: var(--shadow-card); }
+.maplibregl-ctrl-scale { font: 500 11px/1.4 var(--font-body); color: var(--color-ink-2); border-color: var(--color-ink-2); background: color-mix(in oklab, var(--color-paper) 85%, transparent); border-radius: 0 0 4px 4px; padding: 0 6px; box-shadow: var(--shadow-card); }
+.maplibregl-ctrl-attrib, .maplibregl-ctrl-attrib a { font-family: var(--font-body); color: var(--color-muted); }
 .maplibregl-ctrl-attrib.maplibregl-compact { border-radius: 999px !important; background: color-mix(in oklab, var(--color-paper) 90%, transparent) !important; }
+/* The scorecard floats over the map's foot: lift the map's own corner controls clear of it */
+.maplibregl-ctrl-bottom-right, .maplibregl-ctrl-bottom-left { bottom: 64px; }
+
+/* Hovered gauge as a Google-Maps-style location dot */
+.gmap-dot { background: var(--map-coverage); border: 3px solid #fff; box-shadow: 0 1px 4px oklch(20% 0.02 262 / 0.35); }
+.gmap-halo { background: color-mix(in oklab, var(--map-coverage) 30%, transparent); animation: gmap-breathe 2s var(--ease-out) infinite; }
+@keyframes gmap-breathe { 0% { transform: scale(0.55); opacity: 0.9; } 100% { transform: scale(1.35); opacity: 0; } }
 
 /* Scrollbars hidden in the side panels; a down arrow (ScrollArea) says when there is more */
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
-/* The scorecard floats over the map's foot: lift the map's own corner controls clear of it */
-.maplibregl-ctrl-bottom-right, .maplibregl-ctrl-bottom-left { bottom: 64px; }
-
-/* Reduced motion: base.css settles every transition; the looping pulse and the line draw stop outright */
+/* Reduced motion: base.css settles every transition; looping pulses and the line draw stop outright */
 @media (prefers-reduced-motion: reduce) {
   .animate-pulse_ring, .animate-rain, .animate-draw { animation: none !important; }
-  .key:hover, .key:active { transform: none; }
+  .gmap-halo { animation: none; transform: scale(1); opacity: 0.6; }
 }

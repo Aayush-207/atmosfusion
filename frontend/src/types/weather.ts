@@ -1,6 +1,7 @@
 // Mirrors backend/models.py
 
-export const API = "http://localhost:8000/api/v1";
+// Set VITE_API_URL when building for a deployed backend (e.g. on Netlify); local development uses the FastAPI dev server.
+export const API: string = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
 export interface WeatherStation {
   id: string;
@@ -83,9 +84,19 @@ const v = (name: string) => `var(--${name})`;
 /** The CSS variables that give an element a layer's signature colour (with the tone-layer class). */
 export const hueVars = ([h, c]: [number, number]) => ({ "--h": h, "--c": c }) as React.CSSProperties;
 
+// MapLibre only parses hex, rgb() and hsl(): it rejects our oklch tokens with an error event and drops the layer.
+// So resolve the token, then paint it once to a 1-pixel canvas and read it back as rgb().
+let probe: CanvasRenderingContext2D | null = null;
 export function cssColor(c: string) {
   const m = /^var\((--[\w-]+)\)$/.exec(c);
-  return m ? getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim() || c : c;
+  const value = m ? getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim() || c : c;
+  probe ??= document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+  if (!probe) return value;
+  probe.clearRect(0, 0, 1, 1);
+  probe.fillStyle = value;
+  probe.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = probe.getImageData(0, 0, 1, 1).data;
+  return a === 255 ? `rgb(${r}, ${g}, ${b})` : `rgba(${r}, ${g}, ${b}, ${(a / 255).toFixed(3)})`;
 }
 
 export const MODEL_COLORS: Record<string, string> = {

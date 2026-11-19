@@ -107,6 +107,8 @@ npm run dev
 ```
 > 📍 **Dashboard:** Available at `http://localhost:5173`
 
+> 🌐 **Deploying:** set `VITE_API_URL` to the deployed API (for example `https://api.example.com/api/v1`) when building the frontend; without it the dashboard calls `http://localhost:8000/api/v1`.
+
 ---
 
 ## ⚙️ Environment Variables

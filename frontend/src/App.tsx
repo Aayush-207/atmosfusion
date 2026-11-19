@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useWeatherStore } from "./store/useWeatherStore";
 import Layout from "./components/layout/Layout";
+import Logo from "./components/layout/Logo";
 import { API } from "./types/weather";
 
 export default function App() {
@@ -43,7 +44,8 @@ export default function App() {
     return (
       <div className="flex h-screen items-center justify-center px-4">
         <div role="status" className="rounded-card border border-rule bg-paper shadow-card px-8 py-7 w-full max-w-[340px] text-center animate-rise">
-          <div className="relative mx-auto w-14 h-10 overflow-hidden" aria-hidden>
+          <Logo size={48} className="mx-auto mb-2" />
+          <div className="relative mx-auto w-14 h-8 overflow-hidden" aria-hidden>
             {[0, 1, 2, 3, 4].map((i) => (
               <span
                 key={i}
@@ -52,9 +54,9 @@ export default function App() {
               />
             ))}
           </div>
-          <div className="font-display text-[20px] font-semibold tracking-[-0.028em] text-ink mt-3">AtmosFusion</div>
+          <div className="font-display text-[20px] font-bold tracking-[-0.02em] text-heading mt-1">Atmos<span className="text-accent">Fusion</span></div>
           <p className={`text-[13px] mt-1.5 ${error ? "text-error" : "text-muted"}`}>
-            {error ? "Could not reach the forecast API on localhost:8000." : "Blending six models…"}
+            {error ? `Could not reach the forecast API at ${new URL(API).host}.` : "Blending six models…"}
           </p>
         </div>
       </div>

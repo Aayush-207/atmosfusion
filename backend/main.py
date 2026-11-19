@@ -11,7 +11,7 @@ specific historical date. Derived fields (weights, blend, percentiles, probabili
 alerts, quantile curves) come from blend.py.
 """
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 from models import WeatherStation, RegionForecast, VerificationRow, QuantileCurvePoint, HealthResponse
@@ -80,8 +80,8 @@ SCORECARD = [VerificationRow(model_name=n, model_type=t, day1_rmse=d1, day3_rmse
 
 @app.get("/api/v1/health", response_model=HealthResponse)
 def health():
-    return HealthResponse(status="operational", service="AtmosFusion Forecast Blending Engine v1.0", grid_cells_synced=20000,
-                          mesh_resolution="0.25° (≈28 km)", regime_engine="Active Orographic Monsoon", last_cycle="2026-07-18T00:00Z")
+    # Only what the service actually knows: it is up, and how many gauges it is blending.
+    return HealthResponse(status="ok", service="AtmosFusion blending API", stations=len(STATIONS))
 
 
 @app.get("/api/v1/regions/{region_id}/forecast", response_model=RegionForecast)
@@ -97,7 +97,9 @@ def scorecard():
 
 @app.get("/api/v1/quantile-curve", response_model=List[QuantileCurvePoint])
 def quantile_curve(station_id: str = Query(..., description="Station ID")):
-    return CURVES.get(station_id, CURVES[STATIONS[0].id])
+    if station_id not in CURVES:
+        raise HTTPException(status_code=404, detail=f"Unknown station '{station_id}'")
+    return CURVES[station_id]
 
 
 if __name__ == "__main__":

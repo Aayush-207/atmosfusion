@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import * as turf from "@turf/turf";
+import { area, circle, featureCollection, intersect, point, voronoi } from "@turf/turf";
 import type { Feature, MultiPolygon, Polygon } from "geojson";
 import type { WeatherStation, RegionForecast, VerificationRow, LayerMode } from "@/types/weather";
 
@@ -11,16 +11,21 @@ export type Cell = Feature<Polygon | MultiPolygon>;
 function withCoverage(stations: WeatherStation[]) {
   const cells: Record<string, Cell> = {};
   if (stations.length < 3) return { stations, cells };
-  const points = turf.featureCollection(stations.map((s) => turf.point([s.lng, s.lat])));
-  const bbox = turf.bbox(turf.buffer(points, Math.max(...stations.map((s) => s.reach_km)) * 2, { units: "kilometers" })!);
-  const voronoi = turf.voronoi(points, { bbox }).features; // same order as input points
+  const points = featureCollection(stations.map((s) => point([s.lng, s.lat])));
+  // Bounding box of the gauges, padded by twice the largest reach (km to degrees at this latitude)
+  const pad = Math.max(...stations.map((s) => s.reach_km)) * 2;
+  const lats = stations.map((s) => s.lat), lngs = stations.map((s) => s.lng);
+  const midLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+  const dLat = pad / 110.57, dLng = pad / (111.32 * Math.cos((midLat * Math.PI) / 180));
+  const bbox: [number, number, number, number] = [Math.min(...lngs) - dLng, Math.min(...lats) - dLat, Math.max(...lngs) + dLng, Math.max(...lats) + dLat];
+  const tiles = voronoi(points, { bbox }).features; // same order as input points
   const out = stations.map((s, i) => {
-    const reach = turf.circle([s.lng, s.lat], s.reach_km, { units: "kilometers", steps: 96 });
-    const cell = voronoi[i] && turf.intersect(turf.featureCollection([voronoi[i], reach]));
+    const reach = circle([s.lng, s.lat], s.reach_km, { units: "kilometers", steps: 96 });
+    const cell = tiles[i] && intersect(featureCollection([tiles[i], reach]));
     if (!cell) return s;
     cells[s.id] = cell;
-    const area = turf.area(cell) / 1e6;
-    return { ...s, coverage_area_km2: Math.round(area), coverage_radius_km: +Math.sqrt(area / Math.PI).toFixed(1) };
+    const km2 = area(cell) / 1e6;
+    return { ...s, coverage_area_km2: Math.round(km2), coverage_radius_km: +Math.sqrt(km2 / Math.PI).toFixed(1) };
   });
   return { stations: out, cells };
 }

@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-// Every colour, face, radius, shadow and curve is a token in src/tokens.css (Hallmark · Cobalt).
+// Every colour, face, radius, shadow and curve is a token in src/tokens.css.
 const t = (name) => `var(--${name})`;
 
 export default {
@@ -13,29 +13,22 @@ export default {
         ink: t("color-ink"),
         ink2: t("color-ink-2"),
         muted: t("color-muted"),
+        label: t("color-label"),
+        heading: t("color-heading"),
         rule: t("color-rule"),
         rule2: t("color-rule-2"),
+        accent: t("color-accent"),
         graphite: t("color-graphite"),
-        graphite2: t("color-graphite-2"),
         gink: t("color-graphite-ink"),
         gmuted: t("color-graphite-muted"),
-        accent: t("color-accent"),
-        accent2: t("color-accent-2"),
-        wash: t("color-accent-wash"),
         error: t("color-error"),
         "error-wash": t("color-error-wash"),
         success: t("color-success"),
-        "success-wash": t("color-success-wash"),
         warning: t("color-warning"),
-        key: t("color-key-face"),
-        heading: t("color-heading"),
-        figure: t("color-figure"),
-        label: t("color-label"),
       },
       fontFamily: {
         sans: t("font-body"),
         display: t("font-display"),
-        mono: t("font-outlier"),
       },
       borderRadius: {
         card: t("radius-card"),
@@ -43,9 +36,6 @@ export default {
       },
       boxShadow: {
         card: t("shadow-card"),
-        key: t("shadow-key"),
-        "key-accent": t("shadow-key-accent"),
-        "key-press": t("shadow-key-press"),
         float: t("shadow-float"),
       },
       transitionTimingFunction: {

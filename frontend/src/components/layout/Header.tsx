@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import CountUp from "@/components/layout/CountUp";
-import { CloudRain, TriangleAlert, MapPin, Wind, CalendarRange, Clock } from "lucide-react";
+import { TriangleAlert, MapPin, Wind, CalendarRange, Clock } from "lucide-react";
+import Logo from "./Logo";
 import { useWeatherStore } from "@/store/useWeatherStore";
 
 // Three zones on one grid so the centre group is truly centred whatever the sides hold:
@@ -13,9 +14,7 @@ export default function Header() {
   return (
     <header className="flex-shrink-0 h-14 px-4 grid grid-cols-[minmax(0,1fr)_minmax(0,auto)_minmax(0,1fr)] items-center gap-4 bg-paper border-b border-rule relative z-[50]">
       <div className="flex items-center gap-2.5 min-w-0" title="Hybrid AI–NWP rainfall blending for NCMRWF and MoES">
-        <span className="grid place-items-center w-8 h-8 rounded-[9px] bg-ink text-paper flex-shrink-0">
-          <CloudRain size={17} strokeWidth={2.2} aria-hidden />
-        </span>
+        <Logo size={32} className="flex-shrink-0 drop-shadow-[0_1px_2px_rgba(29,78,216,0.35)]" />
         <div className="leading-none min-w-0">
           <div className="font-display text-[17px] font-bold tracking-[-0.02em] text-heading">Atmos<span className="text-accent">Fusion</span></div>
           <div className="text-[11px] font-medium text-label mt-1 truncate hidden xl:block">Rainfall blending, NCMRWF and MoES</div>

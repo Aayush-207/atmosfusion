@@ -1,99 +1,54 @@
+/* AtmosFusion design tokens: the one source for every colour, face, radius, shadow and timing. */
 :root {
   color-scheme: light;
-  --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px; --space-2xl: 64px; --space-3xl: 96px; --space-4xl: 144px;
-  --text-xs: 0.75rem; --text-sm: 0.875rem; --text-md: 1rem; --text-lg: 1.2rem; --text-xl: 1.44rem; --text-2xl: 1.728rem; --text-3xl: 2.074rem;
-  --text-display-s: 1.44rem; --text-display: 1.728rem; --text-section: 1.2rem; --text-title: 1rem; --text-lead: 1rem;
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --ease-in: cubic-bezier(0.7, 0, 0.84, 0); --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --dur-micro: 120ms; --dur-short: 220ms; --dur-long: 420ms;
-  --color-error: oklch(52% 0.19 27); --color-success: oklch(50% 0.12 150);
-  --container: 1440px; --gutter: 64px; --gap-columns: 32px; --section-gap-s: 120px; --section-gap: 144px; --section-gap-l: 176px;
-  --z-base: 1; --z-raised: 10; --z-dropdown: 100; --z-sticky: 200; --z-sticky-nav: 300; --z-modal: 400; --z-toast: 500; --z-tooltip: 600;
-  --color-paper: oklch(98.6% 0.005 250); --color-paper-2: oklch(96.2% 0.008 252); --color-paper-3: oklch(93% 0.011 252);
-  --color-ink: oklch(21% 0.028 262); --color-ink-2: oklch(36% 0.022 260); --color-muted: oklch(50% 0.018 258);
-  --color-rule: oklch(90% 0.009 252); --color-rule-2: oklch(83% 0.012 252);
-  --color-graphite: oklch(21% 0.024 262); --color-graphite-2: oklch(26.5% 0.026 262); --color-graphite-ink: oklch(93% 0.010 250); --color-graphite-muted: oklch(69% 0.022 256);
-  --color-accent: oklch(52% 0.19 258); --color-accent-2: oklch(76% 0.13 254); --color-accent-wash: oklch(95% 0.028 256); --color-accent-ink: oklch(98.6% 0.005 250); --color-focus: oklch(52% 0.19 258);
-  --color-accent-deep: oklch(43% 0.2 262); --color-accent-edge: oklch(39% 0.16 260);
-  --color-glyph-1: oklch(89% 0.025 254); --color-glyph-2: oklch(81% 0.045 255); --color-glyph-3: oklch(70% 0.085 256); --color-glyph-4: oklch(60% 0.13 257);
-  --color-graphite-glyph-1: oklch(33% 0.03 262); --color-graphite-glyph-2: oklch(41% 0.05 260); --color-graphite-glyph-3: oklch(53% 0.1 258);
-  --color-key-face: oklch(99.4% 0.003 250); --color-key-edge: oklch(80% 0.016 254);
-  --font-display: "Familjen Grotesk", system-ui, sans-serif; --font-body: "IBM Plex Sans", system-ui, sans-serif;
-  --font-outlier: "JetBrains Mono", ui-monospace, monospace;
-  --radius-card: 8px; --radius-input: 6px; --radius-pill: 999px;
-  --cell-w: 8px; --cell-h: 16px; --cut: 8px; --cut-l: 16px;
-  --rule-hair: 1px; --shadow-card: 0 1px 2px oklch(21% 0.028 262 / 0.06);
-  --shadow-key: 0 3px 0 0 var(--color-key-edge), 0 6px 8px -4px oklch(21% 0.028 262 / 0.28), inset 0 1px 0 oklch(100% 0 0 / 0.9);
-  --shadow-key-accent: 0 3px 0 0 var(--color-accent-edge), 0 6px 8px -4px oklch(30% 0.12 260 / 0.45), inset 0 1px 0 oklch(100% 0 0 / 0.22);
-  --shadow-key-press: inset 0 1px 2px oklch(21% 0.028 262 / 0.14);
-  --tracking-display: -0.028em; --display-weight: 600;
-}
-/* AtmosFusion data encodings: IMD rainfall categories, model and family hues, three-level status. Data colour, not decoration. */
-:root {
+
+  /* Type: Inter for interface text and tables, Manrope for headings and key figures */
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-display: "Manrope", system-ui, sans-serif;
+  --tracking-display: -0.02em; --display-weight: 600;
+  --text-xs: 0.75rem; --text-sm: 0.875rem; --text-md: 1rem;
+  --text-title: 1rem; --text-section: 1.2rem; --text-display: 1.728rem;
+
+  /* Space, radius */
+  --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px;
+  --radius-input: 6px; --radius-card: 8px; --radius-pill: 999px;
+
+  /* Surfaces and ink: white cards on a near-neutral ground */
+  --color-paper: oklch(100% 0 0); --color-paper-2: oklch(97.3% 0.004 250); --color-paper-3: oklch(94.5% 0.006 250);
+  --color-ink: oklch(22% 0.02 262); --color-ink-2: oklch(37% 0.02 262); --color-muted: oklch(49% 0.02 262);
+  --color-label: oklch(48% 0.025 262); --color-heading: oklch(21% 0.045 265);
+  --color-rule: oklch(92.5% 0.005 250); --color-rule-2: oklch(87.5% 0.008 250);
+
+  /* Accent (selection, focus, brand) and the dark chip for a selected gauge on the map */
+  --color-accent: oklch(56% 0.18 258); --color-focus: var(--color-accent);
+  --color-graphite: oklch(23% 0.08 264); --color-graphite-ink: oklch(97% 0.012 255); --color-graphite-muted: oklch(78% 0.05 257);
+
+  /* Status */
+  --color-error: oklch(52% 0.19 27); --color-error-wash: oklch(96.5% 0.02 27);
+  --color-success: oklch(50% 0.12 150); --color-warning: oklch(52% 0.13 70);
+  --level-high: oklch(55% 0.19 27); --level-mid: oklch(66% 0.14 75); --level-low: oklch(56% 0.12 150);
+
+  /* Data colours: one meaning each, the same everywhere */
+  --data-forecast: oklch(56% 0.15 255); --data-observed: oklch(53% 0.1 188); --data-upper: oklch(56% 0.15 55);
+  --data-spread: oklch(55% 0.05 265); --data-average: oklch(64% 0.01 260);
+  --map-coverage: oklch(62% 0.17 258);
+
+  /* IMD 24 h rainfall categories, light to extremely heavy */
   --rain-1: oklch(82% 0.06 230); --rain-2: oklch(68% 0.11 245); --rain-3: oklch(52% 0.15 255);
   --rain-4: oklch(78% 0.15 85); --rain-5: oklch(66% 0.17 50); --rain-6: oklch(53% 0.19 25);
-  --model-ecmwf: oklch(50% 0.15 258); --model-gfs: oklch(62% 0.12 256); --model-ncum: oklch(74% 0.08 252); --model-wrf: oklch(68% 0.06 240);
-  --model-graphcast: oklch(58% 0.11 180); --model-aifs: oklch(74% 0.09 175);
+
+  /* Models (physics: blue, green, amber, coral; AI: teal, rose) and model families */
+  --model-ecmwf: oklch(56% 0.14 255); --model-wrf: oklch(62% 0.12 150); --model-gfs: oklch(74% 0.13 78);
+  --model-ncum: oklch(65% 0.14 35); --model-graphcast: oklch(60% 0.1 200); --model-aifs: oklch(68% 0.12 355);
   --family-physics: oklch(52% 0.15 258); --family-ai: oklch(58% 0.11 180); --family-ensemble: oklch(66% 0.13 75);
-  --level-high: oklch(55% 0.19 27); --level-mid: oklch(66% 0.14 75); --level-low: oklch(56% 0.12 150);
-  --color-warning: oklch(52% 0.13 70);
-  --shadow-tray: inset 0 1px 2px oklch(21% 0.028 262 / 0.08);
-  --shadow-tray-key: 0 1px 0 var(--color-key-edge), 0 1px 3px oklch(21% 0.028 262 / 0.12);
+
+  /* Elevation */
+  --shadow-card: 0 1px 2px oklch(21% 0.028 262 / 0.06);
   --shadow-float: 0 1px 2px oklch(21% 0.028 262 / 0.08), 0 8px 24px -8px oklch(21% 0.028 262 / 0.22);
   --shadow-panel: var(--shadow-card), 0 8px 24px -10px oklch(21% 0.028 262 / 0.25);
-  --color-error-wash: oklch(96.5% 0.02 27); --color-success-wash: oklch(96.5% 0.025 150);
-}
-/* AtmosFusion palette: white is the main surface; one cobalt hue (258 to 264) in shades and tints carries every role.
-   Darkest shade for headings, a deep shade for figures, the bright mid-tone for the live value and selection,
-   blue-grey tints for labels and rules, pale tints for hover, selection and highlight washes. */
-:root {
-  --blue-50: oklch(98.2% 0.008 255); --blue-100: oklch(96% 0.018 256); --blue-200: oklch(92% 0.032 257);
-  --blue-300: oklch(85% 0.055 257); --blue-400: oklch(72% 0.11 257); --blue-500: oklch(56% 0.18 258);
-  --blue-600: oklch(48% 0.19 260); --blue-700: oklch(40% 0.16 262); --blue-800: oklch(31% 0.12 263); --blue-900: oklch(23% 0.08 264);
+  --shadow-tray: inset 0 1px 2px oklch(21% 0.028 262 / 0.08);
 
-  --color-paper: oklch(99.7% 0.002 250);
-  --color-paper-2: var(--blue-50); --color-paper-3: var(--blue-100);
-  --color-ink: oklch(27% 0.035 262); --color-ink-2: oklch(38% 0.045 260); --color-muted: oklch(51% 0.055 258);
-  --color-rule: var(--blue-100); --color-rule-2: var(--blue-200);
-  --color-heading: var(--blue-800); --color-figure: var(--blue-700); --color-label: oklch(50% 0.07 258);
-  --color-accent: var(--blue-500); --color-accent-2: var(--blue-300); --color-accent-wash: var(--blue-100);
-  --color-accent-edge: var(--blue-700); --color-focus: var(--blue-500);
-  --color-graphite: var(--blue-900); --color-graphite-2: oklch(31% 0.09 263);
-  --color-graphite-ink: oklch(97% 0.012 255); --color-graphite-muted: oklch(78% 0.05 257);
-  --color-key-face: var(--color-paper); --color-key-edge: var(--blue-200);
-}
-/* Multi-colour on white: Manrope throughout; a near-neutral ground so each card's own hue carries it.
-   Headings in deep ink; each card names its hue (see .tone-* in index.css). */
-:root {
-  --font-display: "Manrope", system-ui, sans-serif; --font-body: "Manrope", system-ui, sans-serif;
-  --tracking-display: -0.018em;
-  --color-paper: oklch(100% 0 0); --color-paper-2: oklch(97.3% 0.004 250); --color-paper-3: oklch(94.5% 0.006 250);
-  --color-ink: oklch(22% 0.02 262); --color-ink-2: oklch(37% 0.02 262); --color-muted: oklch(49% 0.02 262); --color-label: oklch(48% 0.025 262);
-  --color-rule: oklch(92.5% 0.005 250); --color-rule-2: oklch(87.5% 0.008 250);
-  --color-heading: oklch(21% 0.045 265);
-}
-/* Model colours: six distinct hues at matched, muted chroma so the chart stays calm on white.
-   Physics models: blue, green, amber, coral. AI models: teal, rose. Used by the donut, the table and the map. */
-:root {
-  --model-ecmwf: oklch(56% 0.14 255); --model-wrf: oklch(62% 0.12 150); --model-gfs: oklch(74% 0.13 78); --model-ncum: oklch(65% 0.14 35);
-  --model-graphcast: oklch(60% 0.1 200); --model-aifs: oklch(68% 0.12 355);
-}
-/* Two faces by place: Inter for interface text, tables and labels; Manrope for headings, the wordmark and key figures. */
-:root {
-  --font-body: "Inter", system-ui, sans-serif; --font-display: "Manrope", system-ui, sans-serif;
-  --tracking-display: -0.02em;
-}
-/* Data colours: one meaning each, used the same way everywhere (cards carry no theme colour of their own).
-   Mid-tones, never dark: forecast blue, observed teal, upper bound amber, spread slate, average grey. */
-:root {
-  --data-forecast: oklch(56% 0.15 255); --data-observed: oklch(57% 0.1 188); --data-upper: oklch(60% 0.15 55);
-  --data-spread: oklch(55% 0.05 265); --data-average: oklch(64% 0.01 260);
-}
-:root { --data-observed: oklch(53% 0.1 188); --data-upper: oklch(56% 0.15 55); }
-/* Motion: slower and smoother. Hover and press 200ms, state changes 400ms, entrances 650ms, drawers 520ms.
-   One soft ease-out for everything that settles, one ease-in-out for things that travel. */
-:root {
-  --dur-micro: 200ms; --dur-short: 400ms; --dur-long: 650ms; --dur-drawer: 520ms;
+  /* Motion: hover and press 200ms, state changes 400ms, entrances 650ms */
+  --dur-micro: 200ms; --dur-short: 400ms; --dur-long: 650ms;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1); --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 }
-/* Hovered gauge's coverage on the map, after Google Maps' location blue */
-:root { --map-coverage: oklch(62% 0.17 258); }

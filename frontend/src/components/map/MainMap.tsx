@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import CountUp from "@/components/layout/CountUp";
 import { Info, TriangleAlert } from "lucide-react";
 import * as maplibregl from "maplibre-gl";
+import { circle } from "@turf/turf";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useWeatherStore } from "@/store/useWeatherStore";
 import { LAYERS, hueVars, MODEL_LABELS, MODEL_COLORS, cssColor, type WeatherStation, type LayerMode } from "@/types/weather";
@@ -31,8 +32,19 @@ function labelSide(s: WeatherStation, all: WeatherStation[]) {
   return all.some((o) => o !== s && o.lng > s.lng && o.lng - s.lng < 0.15 && Math.abs(o.lat - s.lat) < 0.05) ? "left" : "right";
 }
 
-function pinHtml(s: WeatherStation, color: string, selected: boolean, side: "left" | "right") {
+function pinHtml(s: WeatherStation, color: string, selected: boolean, side: "left" | "right", hovered = false) {
   const alert = !!s.active_alert;
+  if (hovered) {
+    // Google-Maps-style location dot: a blue core in a white ring, soft shadow, and a halo breathing out
+    const size = 30, pos = side === "right" ? `left:${size + 2}px` : `right:${size + 2}px;text-align:right`;
+    return `<div class="relative cursor-pointer" style="width:${size}px;height:${size}px">
+      <span class="absolute inset-0 rounded-full gmap-halo"></span>
+      <span class="absolute rounded-full gmap-dot" style="left:7px;top:7px;width:16px;height:16px"></span>
+      <div class="absolute top-1/2 -translate-y-1/2 px-2 py-1 rounded-input border whitespace-nowrap leading-tight shadow-card bg-paper text-ink border-rule" style="${pos}">
+        <div class="text-[12px] font-medium">${s.name}</div>
+        <div class="text-[11px] text-muted"><span class="num">${s.consensus_blend} mm</span> in ${s.terrain_type}</div>
+      </div></div>`;
+  }
   const r = selected ? 9 : 6, size = r * 2 + 10, c = size / 2;
   const ring = selected ? "var(--color-accent)" : alert ? "var(--color-error)" : "transparent";
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' aria-hidden='true'><circle cx='${c}' cy='${c}' r='${r + 3}' style='fill:none;stroke:${ring};stroke-width:2'/><circle cx='${c}' cy='${c}' r='${r}' style='fill:${color};stroke:var(--color-paper);stroke-width:2.5'/></svg>`;
@@ -60,7 +72,7 @@ const categoryOf = (mm: number) => CATEGORY.find(([t]) => mm >= t)!;
 
 // The hover card, a small chart of the gauge: its IMD category, the blend set beside a ring for the heavy-rain
 // chance, observed, blend and 90th percentile compared on one scale, and the model that leads its blend.
-function StationCard({ station, below = false }: { station: WeatherStation; below?: boolean }) {
+function StationCard({ station, below = false, shift = 0 }: { station: WeatherStation; below?: boolean; shift?: number }) {
   const [, cat, catColor] = categoryOf(station.consensus_blend);
   const heavy = Math.round(station.p_heavy_rain * 100);
   const bars: [string, number, string][] = [
@@ -97,7 +109,7 @@ function StationCard({ station, below = false }: { station: WeatherStation; belo
           <svg viewBox="0 0 36 36" className="w-11 h-11 -rotate-90" aria-hidden>
             <circle cx="18" cy="18" r="15" fill="none" strokeWidth="4" style={{ stroke: "var(--color-paper-3)" }} />
             <circle cx="18" cy="18" r="15" fill="none" strokeWidth="4" pathLength={100} strokeLinecap="round"
-              style={{ stroke: ringTone, strokeDasharray: `${Math.max(heavy, 0.5)} 100` }} />
+              className="ring-in" style={{ stroke: ringTone, strokeDasharray: `${Math.max(heavy, 0.5)} 100` }} />
           </svg>
           <div className="leading-tight">
             <div className="num text-[15px] font-semibold text-heading"><CountUp value={heavy} replay={station.id} duration={700} />%</div>
@@ -107,14 +119,27 @@ function StationCard({ station, below = false }: { station: WeatherStation; belo
       </div>
 
       <dl className="px-4 pt-3 pb-3.5 space-y-1.5">
-        {bars.map(([label, v, color]) => (
+        {bars.map(([label, v, color], i) => (
           <div key={label} className="grid grid-cols-[60px_1fr_56px] items-center gap-2 text-[12px]">
             <dt className="text-label">{label}</dt>
-            <dd className="meter !h-1.5"><span style={{ transform: `scaleX(${v / top})`, background: color }} /></dd>
+            <dd className="meter !h-1.5"><span className="fill-in" style={{ transform: `scaleX(${v / top})`, background: color, animationDelay: `${i * 70}ms` }} /></dd>
             <dd className="num text-right font-medium text-ink"><CountUp value={v} replay={station.id} duration={700} /> mm</dd>
           </div>
         ))}
       </dl>
+
+      <div className="px-4 py-2.5 border-t border-rule flex items-center gap-2 text-[12px]">
+        <span className="relative w-3 h-3 flex-shrink-0 rounded-full" style={{ background: "color-mix(in oklab, var(--map-coverage) 22%, transparent)" }} aria-hidden>
+          <span className="absolute inset-[3px] rounded-full" style={{ background: "var(--map-coverage)" }} />
+        </span>
+        <span className="text-label">Covers</span>
+        <span className="font-medium text-ink">
+          <CountUp value={station.coverage_radius_km ?? station.reach_km} replay={station.id} duration={700} /> km radius
+        </span>
+        {station.coverage_area_km2 !== undefined && (
+          <span className="num ml-auto font-semibold text-heading"><CountUp value={station.coverage_area_km2} replay={station.id} duration={700} /> km²</span>
+        )}
+      </div>
 
       {leadKey && (
         <div className={`px-4 py-2.5 border-t border-rule flex items-center gap-2 text-[12px] ${station.active_alert ? "" : "rounded-b-[14px]"} bg-paper2`}>
@@ -132,9 +157,9 @@ function StationCard({ station, below = false }: { station: WeatherStation; belo
       )}
 
       {below ? (
-        <span aria-hidden className="absolute left-1/2 -top-[6px] w-3 h-3 -translate-x-1/2 rotate-45 ring-1 ring-rule bg-paper [clip-path:polygon(0_0,100%_0,0_100%)]" />
+        <span aria-hidden style={{ left: `calc(50% + ${shift}px)` }} className="absolute -top-[6px] w-3 h-3 -translate-x-1/2 rotate-45 ring-1 ring-rule bg-paper [clip-path:polygon(0_0,100%_0,0_100%)]" />
       ) : (
-        <span aria-hidden className={`absolute left-1/2 -bottom-[6px] w-3 h-3 -translate-x-1/2 rotate-45 ring-1 ring-rule [clip-path:polygon(100%_0,100%_100%,0_100%)] ${station.active_alert ? "bg-error-wash" : "bg-paper2"}`} />
+        <span aria-hidden style={{ left: `calc(50% + ${shift}px)` }} className={`absolute -bottom-[6px] w-3 h-3 -translate-x-1/2 rotate-45 ring-1 ring-rule [clip-path:polygon(100%_0,100%_100%,0_100%)] ${station.active_alert ? "bg-error-wash" : "bg-paper2"}`} />
       )}
     </div>
   );
@@ -152,7 +177,7 @@ function VectorMap({ basemap }: { basemap: string }) {
   const mapRef = useRef<maplibregl.Map | null>(null);
   const styleKey = useRef(basemap);
   const [styleTick, setStyleTick] = useState(0); // bumps on every style load so overlays get re-added
-  const [hover, setHover] = useState<{ s: WeatherStation; x: number; y: number } | null>(null);
+  const [hover, setHover] = useState<{ s: WeatherStation; x: number; y: number; w: number; h: number } | null>(null);
 
   useEffect(() => {
     const map = new maplibregl.Map({
@@ -187,7 +212,10 @@ function VectorMap({ basemap }: { basemap: string }) {
     fitted.current = true;
     const b = new maplibregl.LngLatBounds();
     stations.forEach((s) => b.extend([s.lng, s.lat]));
-    mapRef.current.fitBounds(b, { padding: { top: 90, bottom: 90, left: 100, right: 220 }, maxZoom: 12, duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1200 });
+    // Padding scales with the map, so a narrow map still frames the gauges instead of zooming out to the country
+    const c = mapRef.current.getContainer(), w = c.clientWidth, h = c.clientHeight;
+    const padding = { top: Math.min(90, h * 0.14), bottom: Math.min(110, h * 0.18), left: Math.min(100, w * 0.12), right: Math.min(220, w * 0.22) };
+    mapRef.current.fitBounds(b, { padding, maxZoom: 12, duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1200 });
   }, [stations]);
 
   // Picking another gauge glides the map to it (not the first selection, which the opening fit already frames)
@@ -223,26 +251,34 @@ function VectorMap({ basemap }: { basemap: string }) {
     map.addLayer({ id: "cells-line", type: "line", source: "cells", paint: { "line-color": ["get", "color"], "line-width": ["case", ["get", "sel"], 2.5, 1.2] } });
   }, [cells, colorOf, selectedStationId, styleTick]);
 
-  // Hovering a gauge shows the ground it covers: its Voronoi cell in a soft blue with a crisp outline, like
-  // Google Maps' location circle. The data stays put on leave so the shape fades out instead of vanishing.
+  // Hovering a gauge shows the area it stands for: a circle at its coverage radius (the equivalent radius of its
+  // Voronoi cell, else its WMO reach), drawn at true scale in a light transparent blue with a fine blue edge, like
+  // Google Maps' accuracy circle. On leave the circle fades out rather than vanishing.
   const hoverId = hover?.s.id ?? null;
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !styleTick || !map.isStyleLoaded()) return;
-    const blue = cssColor("var(--map-coverage)");
-    if (!map.getSource("hover-cell")) {
-      map.addSource("hover-cell", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-      map.addLayer({ id: "hover-fill", type: "fill", source: "hover-cell",
-        paint: { "fill-color": blue, "fill-opacity": 0, "fill-opacity-transition": { duration: 300, delay: 0 } } });
-      map.addLayer({ id: "hover-line", type: "line", source: "hover-cell",
-        paint: { "line-color": blue, "line-width": 2, "line-opacity": 0, "line-opacity-transition": { duration: 300, delay: 0 } } });
-    }
-    map.moveLayer("hover-fill"); map.moveLayer("hover-line"); // stay above the coverage layer
-    const cell = hoverId ? all[hoverId] : undefined;
-    if (cell) (map.getSource("hover-cell") as maplibregl.GeoJSONSource).setData(cell);
-    map.setPaintProperty("hover-fill", "fill-opacity", cell ? 0.18 : 0);
-    map.setPaintProperty("hover-line", "line-opacity", cell ? 0.9 : 0);
-  }, [hoverId, all, styleTick]);
+    if (!map || !styleTick) return;
+    const s = hoverId ? stations.find((x) => x.id === hoverId) : undefined;
+    const apply = () => {
+      const blue = cssColor("var(--map-coverage)");
+      // Each piece checked on its own, so a retry after a half-finished attempt adds whatever is still missing
+      if (!map.getSource("hover-cov")) map.addSource("hover-cov", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      if (!map.getLayer("hover-cov-fill")) map.addLayer({ id: "hover-cov-fill", type: "fill", source: "hover-cov",
+        paint: { "fill-color": blue, "fill-opacity": 0, "fill-opacity-transition": { duration: 350, delay: 0 } } });
+      if (!map.getLayer("hover-cov-line")) map.addLayer({ id: "hover-cov-line", type: "line", source: "hover-cov",
+        paint: { "line-color": blue, "line-width": 1.5, "line-opacity": 0, "line-opacity-transition": { duration: 350, delay: 0 } } });
+      map.moveLayer("hover-cov-fill"); map.moveLayer("hover-cov-line"); // above the coverage layer
+      if (s) {
+        const km = s.coverage_radius_km ?? s.reach_km;
+        (map.getSource("hover-cov") as maplibregl.GeoJSONSource).setData(circle([s.lng, s.lat], km, { units: "kilometers", steps: 128 }));
+      }
+      map.setPaintProperty("hover-cov-fill", "fill-opacity", s ? 0.16 : 0);
+      map.setPaintProperty("hover-cov-line", "line-opacity", s ? 0.6 : 0);
+    };
+    // Sources can be added once the style has parsed; if it is mid-reload, try again when the map settles
+    const retry = () => { try { apply(); } catch { /* still loading; the next event tries again */ } };
+    try { apply(); } catch { map.once("styledata", retry); map.once("idle", retry); }
+  }, [hoverId, stations, styleTick]);
 
   // HTML markers sit above the canvas, so they survive style switches untouched. They are created once and
   // updated in place: a selection or layer change rewrites only the markers whose look changed, so nothing blinks.
@@ -255,7 +291,7 @@ function VectorMap({ basemap }: { basemap: string }) {
     for (const [id, m] of store) if (!ids.has(id)) { m.marker.remove(); store.delete(id); }
     for (const s of stations) {
       const sel = s.id === selectedStationId;
-      const html = pinHtml(s, colorOf(s), sel, labelSide(s, stations));
+      const html = pinHtml(s, colorOf(s), sel, labelSide(s, stations), s.id === hoverId);
       let m = store.get(s.id);
       if (!m) {
         const el = document.createElement("div");
@@ -265,13 +301,14 @@ function VectorMap({ basemap }: { basemap: string }) {
       m.el.onclick = () => selectStation(s.id);
       m.el.onmouseenter = () => {
         const p = map.project([s.lng, s.lat]);
-        setHover({ s, x: p.x, y: p.y });
+        const c = map.getContainer();
+        setHover({ s, x: p.x, y: p.y, w: c.clientWidth, h: c.clientHeight });
       };
       m.el.onmouseleave = () => setHover(null);
-      m.el.style.zIndex = sel ? "2" : "1";
+      m.el.style.zIndex = s.id === hoverId ? "3" : sel ? "2" : "1";
       if (m.html !== html) { m.el.innerHTML = html; m.html = html; }
     }
-  }, [stations, selectedStationId, colorOf, selectStation]);
+  }, [stations, selectedStationId, colorOf, selectStation, hoverId]);
   useEffect(() => {
     const store = markers.current;
     return () => { store.forEach((m) => m.marker.remove()); store.clear(); };
@@ -280,16 +317,22 @@ function VectorMap({ basemap }: { basemap: string }) {
   return (
     <div className="w-full h-full relative">
       <div ref={box} className="w-full h-full" />
-      {hover && (
-        // Above the gauge; near the top edge there is no room, so it opens below instead
-        <div className="absolute z-[30] pointer-events-none" style={hover.y < 320
-          ? { left: hover.x, top: hover.y + 18, transform: "translate(-50%, 0)" }
-          : { left: hover.x, top: hover.y - 18, transform: "translate(-50%, -100%)" }}>
-          <div className={`animate-pop ${hover.y < 320 ? "origin-top" : "origin-bottom"}`}>
-            <StationCard station={hover.s} below={hover.y < 320} />
+      {hover && (() => {
+        // Above the gauge when there is room, else below; slid sideways to stay inside the map, the pointer still on the gauge
+        const HALF = 150, EDGE = 12;
+        const below = hover.y < 410 && hover.h - hover.y > hover.y;
+        const cx = Math.min(Math.max(hover.x, HALF + EDGE), hover.w - HALF - EDGE);
+        const shift = Math.max(Math.min(hover.x - cx, HALF - 20), -(HALF - 20));
+        return (
+          <div className="absolute z-[30] pointer-events-none" style={below
+            ? { left: cx, top: hover.y + 20, transform: "translate(-50%, 0)" }
+            : { left: cx, top: hover.y - 20, transform: "translate(-50%, -100%)" }}>
+            <div className={`animate-pop ${below ? "origin-top" : "origin-bottom"}`}>
+              <StationCard key={hover.s.id} station={hover.s} below={below} shift={shift} />
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

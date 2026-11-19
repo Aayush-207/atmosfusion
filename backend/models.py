@@ -62,7 +62,4 @@ class QuantileCurvePoint(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     service: str
-    grid_cells_synced: int
-    mesh_resolution: str
-    regime_engine: str
-    last_cycle: str
+    stations: int
